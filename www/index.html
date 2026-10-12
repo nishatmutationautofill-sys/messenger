@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Messenger</title>
+<style id="chatWindowTransparent">
+html, body { margin:0 !important; padding:0 !important; width:100%; min-height:100%; overflow:hidden; background:#eef2f8 !important; }
+</style>
+
+<style id="webCloneLayout">
+body{background:#eef2f8!important} #chatModal{right:0!important;bottom:0!important;left:0!important;top:0!important;width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;z-index:100!important;animation:none!important;display:none}
+#chatModal.web-authenticated{display:flex!important} #chatModal #mxHead{cursor:default}
+#webPairGate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at top right,#e0e7ff,transparent 45%),#eef2f8;display:grid;place-items:center;padding:20px;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#172033}
+#webPairGate .wg-card{width:min(460px,100%);background:#fff;border:1px solid #dbe3ef;border-radius:24px;padding:30px;box-shadow:0 24px 80px #15284a20}
+#webPairGate h1{font-size:23px;margin:0 0 8px} #webPairGate p{font-size:13px;line-height:1.7;color:#64748b;margin:0 0 18px}
+#webPairGate label{display:block;font-size:12px;font-weight:700;margin:14px 0 6px} #webPairGate input{width:100%;height:44px;border:1px solid #cbd5e1;border-radius:12px;padding:0 13px;font:inherit;outline:none} #webPairGate input:focus{border-color:#4f46e5;box-shadow:0 0 0 3px #4f46e51c}
+#webPairGate button{width:100%;margin-top:18px;border:0;border-radius:12px;background:linear-gradient(120deg,#4f46e5,#9333ea);color:white;padding:13px;font-weight:750;cursor:pointer}#webPairGate button:disabled{opacity:.6;cursor:wait}
+#webPairErr{color:#b91c1c;font-size:12px;white-space:pre-wrap;margin-top:10px}
+#webPairGate .wg-stay{display:flex;align-items:center;gap:9px;font-size:12px;color:#475569;margin-top:14px}#webPairGate .wg-stay input{width:16px;height:16px;margin:0;box-shadow:none}#webLogoutBtn{font-size:11px!important;width:auto!important;margin:0 0 0 auto!important;padding:7px 10px!important;background:#b91c1c!important;border-radius:9px!important;flex:none}#webPairNote{font-size:11px;color:#64748b;margin-top:16px;line-height:1.6}
+#webReopen{position:fixed;right:18px;bottom:18px;z-index:99;border:0;border-radius:999px;background:#4f46e5;color:#fff;padding:12px 18px;box-shadow:0 8px 30px #11182730;display:none}
+@media(max-width:520px){#webPairGate .wg-card{padding:22px;border-radius:18px}}
+</style>
+</head>
+<body>
+
+<div id="webPairGate"><section class="wg-card"><h1>Web Messenger</h1><p>মূল সফটওয়্যারের Messenger → Name &amp; ID থেকে একবারের pairing code তৈরি করুন। কোডটি ৫ মিনিটে মেয়াদোত্তীর্ণ হবে এবং একবারই ব্যবহার করা যাবে।</p><form id="webPairForm"><label for="webMachineId">Machine ID</label><input id="webMachineId" autocomplete="off" spellcheck="false" maxlength="128" required placeholder="আপনার সফটওয়্যারের Machine ID"><label for="webPairCode">৮ সংখ্যার pairing code</label><input id="webPairCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" required placeholder="12345678"><label class="wg-stay"><input id="webStayLoggedIn" type="checkbox"> এই ডিভাইসে লগইন চালু রাখুন (Stay logged in)</label><button id="webPairSubmit" type="submit">নিরাপদে সংযুক্ত করুন</button><div id="webPairErr" role="alert"></div></form><div id="webPairNote">এই পেজ HTTPS-এ হোস্ট করতে হবে। পেয়ারিং কোড কাউকে দেবেন না। ওয়েব লগইন করলে একই Machine ID-এর আগের সক্রিয় সেশন বিচ্ছিন্ন হতে পারে।</div></section></div>
+<button id="webReopen" type="button">Open Messenger</button>
+
+<!-- ====== Messenger (Support / Group / Private) ====== -->
+<div id="chatModal" style="display:none" role="dialog" aria-label="Messenger" data-mode="admin" data-gk="public" data-directory="chat">
+  <!-- Offline-safe icon sprite (no external fonts or libraries) -->
+  <svg class="mx-sprite" aria-hidden="true" focusable="false">
+    <symbol id="mxi-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="mxi-clip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="mxi-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></symbol>
+    <symbol id="mxi-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="mxi-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="mxi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="mxi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="mxi-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="mxi-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="mxi-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="mxi-retry" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="mxi-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+    <symbol id="mxi-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+    <symbol id="mxi-file" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/></symbol>
+    <symbol id="mxi-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="mxi-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="mxi-userplus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol>
+    <symbol id="mxi-userx" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/></symbol>
+    <symbol id="mxi-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="mxi-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="mxi-headset" viewBox="0 0 24 24"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3zM3 19a2 2 0 0 0 2 2h1v-7H3z"/></symbol>
+    <symbol id="mxi-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="mxi-crown" viewBox="0 0 24 24"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M5 20h14"/></symbol>
+    <symbol id="mxi-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="mxi-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="mxi-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="mxi-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+    <symbol id="mxi-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+    <symbol id="mxi-spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></symbol>
+    <symbol id="mxi-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+  </svg>
+
+  <div id="mxHead">
+    <div class="mx-av"><span id="mxAvTxt"></span><i id="chatDot"></i></div>
+    <div class="mx-ti"><b id="mxTitle">Support</b><small id="chatStatus"></small></div><button id="webLogoutBtn" type="button" title="লগআউট">লগআউট</button>
+    <button id="mxCallBtn" class="mx-ib" type="button" title="Call support" aria-label="Call support"><svg class="ic"><use href="#mxi-headset"/></svg></button>
+    <button id="mxInfoBtn" class="mx-ib" type="button" title="Group info & members" hidden><svg class="ic"><use href="#mxi-info"/></svg></button>
+    <button id="chatNameBtn" class="mx-ib" type="button" title="Name & ID"><svg class="ic"><use href="#mxi-user"/></svg></button>
+    <button id="chatMinBtn" class="mx-ib" type="button" title="Minimize"><svg class="ic" id="chatArrow"><use href="#mxi-minus"/></svg></button>
+    <button id="chatCloseBtn" class="mx-ib" type="button" title="Close"><svg class="ic"><use href="#mxi-x"/></svg></button>
+  </div>
+
+  <div id="chatBody">
+    <div id="mxTabs" role="tablist">
+      <button type="button" class="mx-tab active" data-mode="admin" role="tab"><svg class="ic"><use href="#mxi-headset"/></svg><span>Support</span><em class="mx-dot" hidden></em></button>
+      <button type="button" class="mx-tab" data-mode="group" role="tab"><svg class="ic"><use href="#mxi-users"/></svg><span>Group</span><em class="mx-dot" hidden></em></button>
+      <button type="button" class="mx-tab" data-mode="dm" role="tab"><svg class="ic"><use href="#mxi-lock"/></svg><span>Private</span><em class="mx-dot" hidden></em></button>
+    </div>
+
+    <div id="mxProfile" class="mx-panel" hidden>
+      <div class="mx-row"><label for="chatName">Username</label><input id="chatName" class="mx-in" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Choose a username"></div>
+      <div class="mx-row"><button type="button" id="chatNameSave" class="mx-btn block">Save username</button></div>
+      <div class="mx-row"><label>ID</label><code id="mxMyId">—</code><button type="button" id="mxCopyId" class="mx-mini" title="Copy ID"><svg class="ic"><use href="#mxi-copy"/></svg></button></div>
+      <small class="mx-hint">Use English letters, numbers, dots, underscores, and hyphens. The first 4 characters of your machine ID will be added to your username.</small><div class="mx-row"><button type="button" id="mxPairCreate" class="mx-btn block">Generate one-time web pairing code</button></div><div class="mx-row" id="mxPairResult" hidden><label>Pairing code (expires in 5 minutes)</label><code id="mxPairCode" style="font-size:20px;letter-spacing:3px"></code><button type="button" id="mxPairCopy" class="mx-mini" title="Copy pairing code">Copy</button><small class="mx-hint">Enter this code with your machine ID on the web messenger. The code works once only.</small></div>
+    </div>
+
+    <!-- Group tab: select groups, manage invitations, create groups, and view details -->
+    <div id="mxGroupBar" hidden>
+      <div id="mxGroups"></div>
+      <div id="mxGPanel" hidden>
+        <div class="mx-gsearch"><svg class="ic"><use href="#mxi-search"/></svg><input id="mxGSearch" type="text" maxlength="30" autocomplete="off" spellcheck="false" placeholder="Search groups…"></div>
+        <div id="mxGItems"></div>
+      </div>
+    </div>
+    <div id="mxInvites" hidden></div>
+    <div id="mxCreate" class="mx-panel" hidden>
+      <div class="mx-ph"><b>New Group</b><button type="button" id="mxGCancel" class="mx-mini" title="Cancel"><svg class="ic"><use href="#mxi-x"/></svg></button></div>
+      <div class="mx-row"><input id="mxGName" class="mx-in" maxlength="30" autocomplete="off" placeholder="Group name"><button type="button" id="mxGCreate" class="mx-btn"><svg class="ic"><use href="#mxi-plus"/></svg>Create</button></div>
+      <small class="mx-hint">You will be the group admin. Send invitations to add members.</small>
+    </div>
+    <div id="mxInfo" class="mx-panel" hidden></div>
+
+    <div id="mxPeer" class="mx-panel" hidden>
+      <div class="mx-row">
+        <input id="dmPeerId" class="mx-in" type="text" maxlength="128" autocomplete="off" spellcheck="false" placeholder="Enter user ID">
+        <button type="button" id="dmOpenBtn" class="mx-go" title="Open chat"><svg class="ic"><use href="#mxi-arrow"/></svg></button>
+      </div>
+      <div class="mx-row mx-peer-actions">
+        <button type="button" id="dmFriendReq" class="mx-btn soft sm"><svg class="ic"><use href="#mxi-userplus"/></svg>Friend Request</button>
+        <button type="button" id="dmRefreshUsers" class="mx-btn ghost sm" title="Refresh user list"><svg class="ic"><use href="#mxi-refresh"/></svg>Refresh</button>
+      </div>
+      <div class="mx-directory-tabs" role="tablist" aria-label="People lists">
+        <button type="button" class="mx-dir-btn active" data-directory="chat" aria-pressed="true"><svg class="ic"><use href="#mxi-msg"/></svg>Chat</button>
+        <button type="button" class="mx-dir-btn" data-directory="users" aria-pressed="false"><svg class="ic"><use href="#mxi-users"/></svg><span>Users</span><em id="mxUsersCount">0</em></button>
+        <button type="button" class="mx-dir-btn" data-directory="requests" aria-pressed="false"><svg class="ic"><use href="#mxi-userplus"/></svg><span>Requests</span><em id="mxRequestsCount">0</em></button>
+      </div>
+      <small class="mx-hint mx-peer-hint">Private chats are available with friends or members of the same group.</small>
+      <div id="mxFriendRequests" class="mx-directory-content"></div><div id="mxUsers" class="mx-directory-content"></div><div id="mxRecent"></div>
+    </div>
+
+    <div id="mxNotice" role="status" hidden title="Click to dismiss"></div>
+
+    <div id="mxListWrap">
+      <div id="mxSelectBar" hidden><span id="mxSelectedLabel">1 message selected</span><button id="mxDeleteSelected" type="button" class="mx-btn danger sm">Delete</button><button id="mxCancelSelect" type="button" class="mx-btn ghost sm">Cancel</button></div>
+      <div id="mxContextMenu" hidden><button id="mxContextCopy" type="button">Copy</button><button id="mxContextDelete" type="button">Delete</button></div>
+      <div id="mxList"></div>
+      <button id="mxDown" type="button" hidden title="Scroll to bottom"><svg class="ic"><use href="#mxi-down"/></svg><b id="mxDownN" hidden></b></button>
+    </div>
+
+    <div id="chatUp" hidden><span id="chatUpT"></span><i id="chatUpB"></i></div>
+    <div id="mxEmoji" hidden></div>
+
+    <div id="chatBar">
+      <button id="chatAttach" class="mx-ib dark" type="button" title="Send image or PDF"><svg class="ic"><use href="#mxi-clip"/></svg></button>
+      <input id="mxProtocolFile" type="file" hidden accept="image/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.xls,.csv" />
+      <button id="mxEmojiBtn" class="mx-ib dark" type="button" title="Emoji"><svg class="ic"><use href="#mxi-smile"/></svg></button>
+      <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Type a message…"></textarea>
+      <button id="chatSend" class="mx-send" type="button" title="Send (Enter)"><svg class="ic"><use href="#mxi-send"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Keep everything inside the modal so it stays above the website view -->
+  <div id="mxConf" hidden>
+    <div class="mx-card">
+      <b id="mxConfT"></b><p id="mxConfP"></p>
+      <div class="a"><button type="button" id="mxConfNo" class="mx-btn ghost">Cancel</button><button type="button" id="mxConfYes" class="mx-btn danger">Delete</button></div>
+    </div>
+  </div>
+  <div id="chatLb" hidden>
+    <div class="lb-bar"><button id="lbSave" type="button"><svg class="ic"><use href="#mxi-download"/></svg>Save</button><button id="lbX" type="button" title="Close"><svg class="ic"><use href="#mxi-x"/></svg></button></div>
+    <img id="lbImg" alt="">
+  </div>
+  <div id="mxToast" hidden></div>
+  <div id="mxCallPanel" hidden style="position:absolute;z-index:40;inset:42px 10px auto;background:#fff;color:#111827;border:1px solid #cbd5e1;border-radius:14px;padding:14px;box-shadow:0 12px 40px #0005">
+    <b id="mxCallTitle">Voice call</b><p id="mxCallText" style="font-size:12px;margin:8px 0 12px">—</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="mxCallAccept" type="button" style="background:#16a34a;color:white;border:0;border-radius:8px;padding:8px 12px" hidden>Accept</button><button id="mxCallEnd" type="button" style="background:#dc2626;color:white;border:0;border-radius:8px;padding:8px 12px">End call</button><button id="mxCallMute" type="button" style="background:#e2e8f0;color:#111827;border:0;border-radius:8px;padding:8px 12px" hidden>Mute</button></div>
+    <audio id="mxCallRemoteAudio" autoplay playsinline></audio>
+  </div>
+</div>
+
+<style id="chatStyle">
+  .chat-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;background:#ef4444;color:#fff;border-radius:999px;font-size:10px;font-weight:800;padding:2px 6px;line-height:1.3}
+
+  /* ===== Theme tokens: each mode has its own accent color ===== */
+  #chatModal{--ink:#1c2236;--mute:#667089;--line:#e4e8f1;--bg:#f2f4fa;
+    --ac:#4f46e5;--ac2:#6d28d9;--acr:79,70,229;--acs:#ecedff;--act:#3730a3}
+  #chatModal[data-mode=group]{--ac:#0f766e;--ac2:#0e7490;--acr:15,118,110;--acs:#dff6f1;--act:#0b5f58}
+  #chatModal[data-mode=group][data-gk=custom]{--ac:#b45309;--ac2:#c2410c;--acr:180,83,9;--acs:#fff0dc;--act:#8f3d08}
+  #chatModal[data-mode=dm]{--ac:#be185d;--ac2:#7c3aed;--acr:190,24,93;--acs:#fdebf4;--act:#9d174d}
+
+  #chatModal{position:fixed;right:10px;bottom:10px;z-index:2147483647;isolation:isolate;width:360px;max-width:calc(100vw - 20px);height:min(590px,calc(100vh - 84px));display:none;flex-direction:column;background:var(--bg);border-radius:18px;overflow:hidden;box-shadow:-10px 0 32px rgba(18,24,48,.22),0 0 0 1px rgba(18,24,48,.07);font-size:12px;line-height:1.5;color:var(--ink);animation:mxPop .22s ease-out}
+  /* Keep chat modal above all ordinary app/page UI layers */
+  #chatModal{will-change:transform; transform:translateZ(0)}
+  #chatModal,#chatModal *{font-family:"Hind Siliguri","Noto Sans Bengali",Inter,"Segoe UI",Tahoma,sans-serif;box-sizing:border-box}
+  #chatModal [hidden]{display:none!important}
+  #chatModal button{font-family:inherit}
+  #chatModal .mx-sprite{position:absolute;width:0;height:0;overflow:hidden}
+  #chatModal .ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}
+  #chatModal .ic.spin{animation:mxSpin .8s linear infinite}
+  #chatModal button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+  #chatModal input:focus-visible,#chatModal textarea:focus-visible{outline:none}
+  #chatModal.minimized{height:auto}
+  #chatModal.minimized #chatBody{display:none}
+  @keyframes mxPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes mxSpin{to{transform:rotate(360deg)}}
+
+  /* ===== Header ===== */
+  #chatModal #mxHead{display:flex;align-items:center;gap:8px;padding:10px 9px 10px 11px;color:#fff;cursor:pointer;user-select:none;flex:none;
+    background:radial-gradient(120% 160% at 0 0,rgba(255,255,255,.2),transparent 55%),linear-gradient(125deg,var(--ac),var(--ac2))}
+  #chatModal .mx-av{position:relative;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35);display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+  #chatModal .mx-av .ic{font-size:17px}
+  #chatModal .mx-av i{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:#94a3b8;border:2px solid var(--ac2)}
+  #chatModal .mx-ti{flex:1;min-width:0}
+  #chatModal .mx-ti b{display:block;font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #chatModal .mx-ti small{display:block;font-size:10px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #chatModal .mx-ib{width:27px;height:27px;min-height:0;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;display:grid;place-items:center;font-size:13px;flex:none;transition:background .15s,transform .12s}
+  #chatModal .mx-ib:hover{background:rgba(255,255,255,.34)}
+  #chatModal .mx-ib:active{transform:scale(.92)}
+  #chatModal .mx-ib.dark{width:32px;height:32px;background:var(--acs);color:var(--act);font-size:15px}
+  #chatModal .mx-ib.dark:hover{filter:brightness(.96)}
+  #chatModal .mx-ib:disabled{opacity:.4;cursor:not-allowed}
+  #chatModal #chatBody{display:flex;flex-direction:column;flex:1;min-height:0}
+
+  /* ===== Tabs ===== */
+  #chatModal #mxTabs{display:flex;gap:2px;margin:9px 9px 7px;padding:3px;background:#e6e9f3;border-radius:12px;flex:none}
+  #chatModal .mx-tab{position:relative;flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;gap:4px;border:0;border-radius:9px;padding:6px 2px;background:transparent;color:var(--mute);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+  #chatModal .mx-tab .ic{font-size:13px}
+  #chatModal .mx-tab:hover{color:var(--ink)}
+  #chatModal .mx-tab.active{background:#fff;color:var(--ac);box-shadow:0 1px 4px rgba(18,24,48,.16)}
+  #chatModal .mx-dot{position:absolute;top:-3px;right:2px;min-width:15px;height:15px;border-radius:8px;background:#ef4444;color:#fff;font-size:9px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px;line-height:1;box-shadow:0 0 0 2px #e6e9f3}
+
+  /* ===== Panels, inputs, and buttons ===== */
+  #chatModal .mx-panel{margin:0 9px 7px;padding:9px;background:#fff;border:1px solid var(--line);border-radius:14px;font-size:11px;color:var(--mute);flex:none;box-shadow:0 1px 3px rgba(18,24,48,.04)}
+  #chatModal #mxPeer,#chatModal #mxInfo{max-height:190px;overflow-y:auto;scrollbar-width:thin}
+  #chatModal .mx-hint{display:block;color:#8a93a8;font-size:10px;line-height:1.5}
+  #chatModal .mx-ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--ink);font-size:12px}
+  #chatModal .mx-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  #chatModal .mx-row label{font-size:10.5px;color:var(--mute);white-space:nowrap}
+  #chatModal .mx-in{flex:1;min-width:0;min-height:0;height:31px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:11.5px;outline:0;background:#f6f7fb;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+  #chatModal .mx-in::placeholder{color:#9aa3b8}
+  #chatModal .mx-in:focus{background:#fff;border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--acr),.14)}
+  #chatModal #mxMyId{flex:1;min-width:0;background:#f1f3f9;border-radius:8px;padding:5px 8px;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all;color:var(--ink)}
+
+  #chatModal .mx-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;min-height:0;padding:0 13px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(var(--acr),.32);transition:transform .12s,box-shadow .15s,filter .15s}
+  #chatModal .mx-btn .ic{font-size:13px}
+  #chatModal .mx-btn:hover{filter:brightness(1.08);box-shadow:0 4px 12px rgba(var(--acr),.4)}
+  #chatModal .mx-btn:active{transform:translateY(1px) scale(.98);box-shadow:0 1px 3px rgba(var(--acr),.3)}
+  #chatModal .mx-btn:disabled{opacity:.45;cursor:not-allowed;filter:none;transform:none}
+  #chatModal .mx-btn.sm{height:25px;padding:0 10px;font-size:10.5px;border-radius:8px}
+  #chatModal .mx-btn.block{width:100%}
+  #chatModal .mx-btn.soft{background:var(--acs);color:var(--act);box-shadow:none}
+  #chatModal .mx-btn.soft:hover{filter:brightness(.96);box-shadow:none}
+  #chatModal .mx-btn.ghost{background:#fff;color:var(--mute);border:1px solid var(--line);box-shadow:none}
+  #chatModal .mx-btn.ghost:hover{background:#f6f7fb;filter:none;box-shadow:none}
+  #chatModal .mx-btn.danger{background:linear-gradient(135deg,#e11d48,#dc2626);box-shadow:0 2px 8px rgba(220,38,38,.3)}
+  #chatModal .mx-btn.dsoft{background:#fff1f2;color:#be123c;box-shadow:none}
+  #chatModal .mx-btn.dsoft:hover{background:#ffe4e6;filter:none;box-shadow:none}
+  #chatModal .mx-mini{width:25px;height:25px;min-height:0;padding:0;border:0;background:var(--acs);color:var(--act);border-radius:8px;cursor:pointer;flex:none;display:inline-grid;place-items:center;font-size:12px;transition:filter .15s,transform .12s}
+  #chatModal .mx-mini:hover{filter:brightness(.94)}
+  #chatModal .mx-mini:active{transform:scale(.92)}
+  #chatModal .mx-mini.bad{background:#fff1f2;color:#be123c}
+  #chatModal .mx-go{width:31px;height:31px;min-height:0;padding:0;border:0;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;cursor:pointer;flex:none;display:grid;place-items:center;font-size:14px;box-shadow:0 2px 8px rgba(var(--acr),.32);transition:transform .12s,filter .15s}
+  #chatModal .mx-go:hover{filter:brightness(1.08)}
+  #chatModal .mx-go:active{transform:scale(.94)}
+
+  /* ===== Group bar and invitations ===== */
+  #chatModal #mxGroupBar{flex:none}
+  #chatModal #mxGroups{display:flex;gap:6px;overflow-x:auto;padding:1px 9px 8px;scrollbar-width:none}
+  #chatModal #mxGroups::-webkit-scrollbar{display:none}
+  #chatModal .mx-gc{position:relative;flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;min-height:0;padding:0 11px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:11px;font-weight:600;color:var(--ink);cursor:pointer;max-width:140px;transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+  #chatModal .mx-gc .ic{font-size:12px;color:var(--ac)}
+  #chatModal .mx-gc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #chatModal .mx-gc:hover{border-color:var(--ac)}
+  #chatModal .mx-gc.on{background:linear-gradient(135deg,var(--ac),var(--ac2));border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(var(--acr),.3)}
+  #chatModal .mx-gc.on .ic{color:#fff}
+  #chatModal .mx-gc.add{border-style:dashed;color:var(--mute)}
+  #chatModal .mx-gc.add .ic{color:var(--mute)}
+  #chatModal .mx-gc em{min-width:15px;height:15px;border-radius:8px;background:#ef4444;color:#fff;font-size:9px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px}
+  #chatModal #mxInvites{flex:none;max-height:130px;overflow-y:auto}
+  #chatModal .mx-inv{margin:0 9px 7px;padding:9px;border-radius:14px;background:linear-gradient(135deg,#fff8e8,#fff);border:1px solid #fbd88c;font-size:11px;color:#6b4a07}
+  #chatModal .mx-inv-t{margin-bottom:7px;line-height:1.55}
+  #chatModal .mx-inv-t b{color:#3b2a04}
+  #chatModal .mx-inv-a{display:flex;gap:6px}
+  #chatModal .mx-inv-a .mx-btn{flex:1}
+
+  /* ===== Group info, members, and user list ===== */
+  #chatModal .mx-role{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--act);background:var(--acs);padding:1px 8px;border-radius:999px}
+  #chatModal .mx-role .ic{font-size:11px}
+  #chatModal .mx-sec{margin:8px 0 3px;font-size:10.5px;font-weight:700;color:var(--ink)}
+  #chatModal .mx-mem,#chatModal .mx-urow{display:flex;align-items:center;gap:7px;padding:4px 0}
+  #chatModal .mx-mem+.mx-mem,#chatModal .mx-urow+.mx-urow{border-top:1px solid #f0f2f8}
+  #chatModal .mx-mav{position:relative;width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff}
+  #chatModal .mx-mav i{position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border-radius:50%;background:#cbd2e1;border:2px solid #fff}
+  #chatModal .mx-mav i.on{background:#22c55e}
+  #chatModal .mx-mn{flex:1;min-width:0;line-height:1.3}
+  #chatModal .mx-mn b{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #chatModal .mx-mn b .ic{font-size:11px;color:#d97706;flex:none}
+  #chatModal .mx-mn small{display:block;font-size:9.5px;color:#8a93a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #chatModal .mx-ma{display:flex;gap:4px;flex:none}
+  #chatModal .mx-foot2{display:flex;gap:6px;margin-top:9px}
+  #chatModal .mx-foot2 .mx-btn{flex:1}
+  #chatModal #mxFriendRequests,#chatModal #mxUsers{margin-top:4px}
+  #chatModal #mxUsers{max-height:104px;overflow-y:auto;scrollbar-width:thin}
+  #chatModal #mxRecent{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  #chatModal .mx-chip{position:relative;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--acs);color:var(--act);border-radius:999px;padding:2px 5px 2px 9px;font-size:10.5px;font-weight:600;cursor:pointer;max-width:100%}
+  #chatModal .mx-chip.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border-color:transparent}
+  #chatModal .mx-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+  #chatModal .mx-chip b{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;font-size:9px;background:rgba(0,0,0,.12)}
+  #chatModal .mx-chip em{min-width:14px;height:14px;border-radius:7px;background:#ef4444;color:#fff;font-size:8.5px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 3px}
+
+  #chatModal #mxNotice{margin:0 9px 7px;padding:6px 10px;font-size:10.5px;line-height:1.55;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:10px;flex:none;cursor:pointer}
+
+  /* ===== Message list ===== */
+  #chatModal #mxListWrap{position:relative;flex:1 1 0;min-height:0;display:flex}
+  #chatModal #mxList{flex:1;min-height:0;overflow-y:auto;padding:6px 8px 8px;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:#cbd2e1 transparent}
+  #chatModal #mxDown{position:absolute;right:10px;bottom:10px;width:30px;height:30px;min-height:0;padding:0;border-radius:50%;border:0;background:#fff;color:var(--ac);box-shadow:0 4px 12px rgba(18,24,48,.24);cursor:pointer;font-size:14px;display:grid;place-items:center;transition:transform .12s}
+  #chatModal #mxDown:active{transform:scale(.92)}
+  #chatModal #mxDown b{position:absolute;top:-5px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:#ef4444;color:#fff;font-size:9px;display:grid;place-items:center;padding:0 4px}
+  #chatModal .mx-day,#chatModal .mx-sys{align-self:center;font-size:9.5px;color:var(--mute);background:#fff;border:1px solid var(--line);padding:1px 10px;border-radius:999px;margin:8px 0 5px}
+  #chatModal .mx-sys{background:#fff4d6;border-color:#f6e5ad;color:#735b13;border-radius:10px;max-width:96%;text-align:center;white-space:pre-wrap;padding:3px 10px}
+  #chatModal .mx-empty{margin:auto;text-align:center;color:#7d879f;font-size:11.5px;line-height:1.8;white-space:pre-line;padding:0 14px}
+  #chatModal .mx-empty .ic{display:block;margin:0 auto 8px;width:46px;height:46px;padding:11px;border-radius:50%;background:var(--acs);color:var(--ac);stroke-width:1.8}
+  #chatModal .mx-m{display:flex;align-items:flex-end;gap:5px;margin-top:2px}
+  #chatModal .mx-m.first{margin-top:8px}
+  #chatModal .mx-m.me{flex-direction:row-reverse}
+  #chatModal .mx-pic{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff}
+  #chatModal .mx-pic.ph{visibility:hidden}
+  #chatModal .mx-pic.link{cursor:pointer;transition:transform .12s}
+  #chatModal .mx-pic.link:hover{transform:scale(1.1)}
+  #chatModal .mx-col{display:flex;flex-direction:column;min-width:0;max-width:90%}
+  #chatModal .mx-m.me .mx-col{align-items:flex-end}
+  #chatModal .mx-nm{font-size:10px;font-weight:700;margin:0 7px 1px}
+  #chatModal .mx-b{padding:6px 10px 4px;border-radius:16px;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border:1px solid var(--line);box-shadow:0 1px 2px rgba(28,34,54,.05);min-width:0;max-width:100%}
+  #chatModal .mx-m.me .mx-b{background:linear-gradient(135deg,var(--ac),var(--ac2));border-color:transparent;color:#fff;box-shadow:0 2px 6px rgba(var(--acr),.25)}
+  #chatModal .mx-m.other:not(.first) .mx-b{border-top-left-radius:5px}
+  #chatModal .mx-m.other:not(.last) .mx-b{border-bottom-left-radius:5px}
+  #chatModal .mx-m.me:not(.first) .mx-b{border-top-right-radius:5px}
+  #chatModal .mx-m.me:not(.last) .mx-b{border-bottom-right-radius:5px}
+  #chatModal .mx-b a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+  #chatModal .mx-img{display:block;width:min(260px,100%);height:220px;max-width:100%;max-height:260px;min-width:160px;border-radius:12px;cursor:zoom-in;background:#f1f5f9;object-fit:contain;box-shadow:0 2px 8px rgba(20,30,50,.12)}
+  #chatModal .mx-img+.mx-t{margin-top:3px}
+  #chatModal .mx-file{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;padding:1px}
+  #chatModal .mx-file>.ic{width:28px;height:28px;padding:6px;border-radius:9px;background:var(--acs);color:var(--ac);flex:none}
+  #chatModal .mx-m.me .mx-file>.ic{background:rgba(255,255,255,.22);color:#fff}
+  #chatModal .mx-file.risky>.ic{background:#fee2e2;color:#dc2626}
+  #chatModal .mx-file div{min-width:0;font-size:11px}
+  #chatModal .mx-file b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
+  #chatModal .mx-file small{opacity:.75;font-size:9.5px}
+  #chatModal .mx-foot{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:2px;font-size:9px;white-space:nowrap}
+  #chatModal .mx-time{opacity:.7;margin-right:auto;padding-right:6px}
+  #chatModal .mx-fb{display:inline-flex;align-items:center;gap:3px;height:19px;min-height:0;padding:0 7px;border:0;border-radius:10px;background:rgba(100,112,137,.14);color:#4b5568;font-size:9.5px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+  #chatModal .mx-fb .ic{font-size:10px}
+  #chatModal .mx-m.me .mx-fb{background:rgba(255,255,255,.24);color:#fff}
+  #chatModal .mx-fb:hover{background:var(--acs);color:var(--act)}
+  #chatModal .mx-fb.del{color:#dc2626}
+  #chatModal .mx-m.me .mx-fb.del{background:rgba(239,68,68,.65);color:#fff}
+  #chatModal .mx-fb.del:hover{background:#dc2626;color:#fff}
+  #chatModal .mx-fb.retry{background:#fef3c7;color:#b45309}
+  #chatModal .mx-fb:disabled{opacity:.5;cursor:wait}
+
+  /* ===== Uploads, emoji, and composer ===== */
+  #chatModal #chatUp{padding:5px 11px;font-size:10.5px;color:var(--act);background:#fff;border-top:1px solid var(--line);flex:none}
+  #chatModal #chatUp i{display:block;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--ac),var(--ac2));width:0;margin-top:3px;transition:width .15s}
+  #chatModal #chatUp i.ind{width:40%;animation:mxInd 1s infinite ease-in-out alternate}
+  @keyframes mxInd{from{margin-left:0}to{margin-left:60%}}
+  #chatModal #mxEmoji{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;padding:6px;background:#fff;border-top:1px solid var(--line);max-height:100px;overflow-y:auto;flex:none}
+  #chatModal #mxEmoji button{min-height:0;border:0;background:transparent;font-size:17px;padding:2px;border-radius:7px;cursor:pointer;transition:background .12s,transform .12s}
+  #chatModal #mxEmoji button:hover{background:var(--acs);transform:scale(1.15)}
+  #chatModal #chatBar{display:flex;align-items:flex-end;gap:6px;padding:8px;background:#fff;border-top:1px solid var(--line);flex:none;box-shadow:0 -6px 16px rgba(18,24,48,.05)}
+  #chatModal #chatInput{flex:1;min-width:0;min-height:0;height:32px;max-height:84px;resize:none;border:1px solid var(--line);outline:0;background:#f4f6fb;border-radius:16px;padding:6px 12px;font-size:12px;line-height:1.45;overflow-y:auto;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+  #chatModal #chatInput:focus{background:#fff;border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--acr),.14)}
+  #chatModal .mx-send{width:34px;height:34px;min-height:0;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;cursor:pointer;flex:none;font-size:15px;display:grid;place-items:center;box-shadow:0 3px 10px rgba(var(--acr),.38);transition:transform .12s,filter .15s,box-shadow .15s}
+  #chatModal .mx-send:hover{filter:brightness(1.08)}
+  #chatModal .mx-send:active{transform:scale(.92)}
+  #chatModal .mx-send:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;filter:none;transform:none}
+
+  /* ===== Dialogs, lightbox, and toast ===== */
+  #chatModal #mxConf{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(18,24,48,.55);padding:14px}
+  #chatModal .mx-card{background:#fff;border-radius:16px;padding:15px;width:100%;box-shadow:0 14px 40px rgba(0,0,0,.32)}
+  #chatModal .mx-card b{display:block;font-size:13px;margin-bottom:4px;color:var(--ink)}
+  #chatModal .mx-card p{font-size:11.5px;color:var(--mute);margin:0 0 13px;word-break:break-word}
+  #chatModal .mx-card .a{display:flex;gap:7px}
+  #chatModal .mx-card .a .mx-btn{flex:1}
+  #chatModal #chatLb{position:absolute;inset:0;z-index:15;background:rgba(10,14,30,.95);display:grid;place-items:center;padding:42px 6px 6px}
+  #chatModal #chatLb img{max-width:100%;max-height:100%;border-radius:10px}
+  #chatModal .lb-bar{position:absolute;top:7px;right:7px;display:flex;gap:6px}
+  #chatModal .lb-bar button{display:inline-flex;align-items:center;gap:5px;min-height:0;border:0;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;padding:6px 11px;cursor:pointer;font-size:11.5px;font-weight:600}
+  #chatModal .lb-bar button:hover{background:rgba(255,255,255,.3)}
+  #chatModal #mxToast{position:absolute;left:12px;right:12px;bottom:56px;z-index:25;background:#171c2e;color:#fff;padding:8px 12px;border-radius:12px;font-size:11px;text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.32)}
+  @media(prefers-reduced-motion:reduce){#chatModal,#chatModal #chatUp i.ind,#chatModal .ic.spin{animation:none}#chatModal *{transition:none!important}}
+
+  /* Refined English-first messenger UI */
+  #chatModal {
+    width: min(390px, 100vw);
+    height: min(700px, calc(100vh - 32px));
+    right: 18px; bottom: 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.72);
+    box-shadow: 0 24px 70px rgba(15,23,42,.28), 0 4px 14px rgba(15,23,42,.08);
+    font-size: 13px;
+    background: #f7f8fc;
+    --ink:#172033; --mute:#758096; --line:#e6eaf2; --bg:#f7f8fc;
+  }
+  #chatModal, #chatModal * { font-family: Inter, "Segoe UI", Arial, sans-serif; }
+  #chatModal #mxHead {
+    padding: 16px 14px;
+    gap: 10px;
+    background: radial-gradient(100% 130% at 0 0,rgba(255,255,255,.25),transparent 58%),linear-gradient(130deg,#4f46e5 0%,#7c3aed 58%,#9333ea 100%);
+  }
+  #chatModal .mx-av { width: 42px; height: 42px; font-size: 16px; }
+  #chatModal .mx-ti b { font-size: 14px; letter-spacing: -.2px; }
+  #chatModal .mx-ti small { font-size: 11px; }
+  #chatModal .mx-ib { width: 30px; height: 30px; font-size: 14px; }
+  #chatModal #mxTabs { margin: 12px 12px 9px; padding: 4px; gap: 4px; border-radius: 13px; background: #e9eaf5; }
+  #chatModal .mx-tab { padding: 9px 5px; gap: 6px; font-size: 12px; border-radius: 10px; }
+  #chatModal .mx-tab .ic { font-size: 14px; }
+  #chatModal .mx-tab.active { box-shadow: 0 2px 7px rgba(26,31,56,.12); }
+  #chatModal .mx-panel { margin: 0 12px 9px; padding: 12px; border-radius: 15px; font-size: 12px; }
+  #chatModal .mx-hint { font-size: 11px; line-height: 1.55; }
+  #chatModal .mx-row { gap: 8px; margin-bottom: 8px; }
+  #chatModal .mx-row label { font-size: 11px; }
+  #chatModal .mx-in { height: 36px; border-radius: 11px; padding: 0 12px; font-size: 12px; background: #f8f9fd; }
+  #chatModal .mx-btn { height: 35px; padding: 0 14px; border-radius: 11px; font-size: 12px; }
+  #chatModal .mx-btn.sm { height: 30px; font-size: 11px; }
+  #chatModal .mx-mini { width: 30px; height: 30px; border-radius: 9px; }
+  #chatModal .mx-go { width: 36px; height: 36px; border-radius: 11px; }
+  #chatModal #mxGroups { padding: 2px 12px 10px; gap: 7px; }
+  #chatModal .mx-gc { height: 32px; padding: 0 13px; font-size: 11.5px; }
+  #chatModal #mxList { padding: 10px 12px 12px; gap: 2px; scrollbar-width: thin; }
+  #chatModal .mx-day { margin: 10px 0 7px; font-size: 10px; background: #eef0f8; border: 0; padding: 4px 11px; }
+  #chatModal .mx-sys { font-size: 10px; padding: 5px 11px; }
+  #chatModal .mx-pic { width: 27px; height: 27px; font-size: 11px; }
+  #chatModal .mx-col { max-width: 84%; }
+  #chatModal .mx-nm { font-size: 11px; margin: 0 9px 3px; }
+  #chatModal .mx-b { padding: 9px 12px 7px; border-radius: 17px; font-size: 12.5px; line-height: 1.55; box-shadow: 0 2px 5px rgba(28,34,54,.04); }
+  #chatModal .mx-m.me .mx-b { box-shadow: 0 4px 10px rgba(var(--acr),.18); }
+  #chatModal .mx-foot { margin-top: 4px; font-size: 10px; }
+  #chatModal #chatBar { padding: 11px 12px 12px; gap: 8px; background: rgba(255,255,255,.96); }
+  #chatModal .mx-ib.dark { width: 36px; height: 36px; font-size: 16px; border-radius: 12px; }
+  #chatModal #chatInput { height: 38px; border-radius: 19px; padding: 9px 14px; font-size: 12.5px; background: #f5f6fb; }
+  #chatModal .mx-send { width: 38px; height: 38px; font-size: 16px; }
+  #chatModal #mxNotice { margin: 0 12px 9px; padding: 9px 12px; font-size: 11.5px; border-radius: 12px; }
+  #chatModal .mx-inv { margin: 0 12px 9px; padding: 12px; border-radius: 15px; font-size: 12px; }
+  #chatModal .mx-sec { font-size: 11px; margin: 10px 0 5px; }
+  #chatModal .mx-mem, #chatModal .mx-urow { gap: 9px; padding: 7px 0; }
+  #chatModal .mx-mav { width: 31px; height: 31px; font-size: 12px; }
+  #chatModal .mx-mn b { font-size: 12px; }
+  #chatModal .mx-mn small { font-size: 10px; }
+  #chatModal .mx-chip { padding: 4px 7px 4px 10px; font-size: 11px; }
+  #chatModal #mxToast { bottom: 68px; padding: 10px 13px; font-size: 12px; border-radius: 13px; }
+  #chatModal #mxConf { backdrop-filter: blur(5px); }
+  #chatModal .mx-card { padding: 18px; border-radius: 18px; }
+  #chatModal .mx-card b { font-size: 15px; }
+  #chatModal .mx-card p { font-size: 12.5px; line-height: 1.55; }
+  @media (max-width: 520px) {
+    #chatModal { right: 0; bottom: 0; width: 100vw; height: min(82dvh, 760px); border-radius: 22px 22px 0 0; }
+  }
+
+
+  /* Compact, organized messenger refresh */
+  #chatModal {
+    width: min(420px, calc(100vw - 24px));
+    height: min(660px, calc(100vh - 28px));
+    right: 12px; bottom: 12px; border-radius: 17px;
+    font-size: 12px; background: #f5f9ff;
+    --ink: #101828; --mute: #59677d; --line: #dce8f5; --bg: #f5f9ff;
+  }
+  #chatModal #mxHead { padding: 10px 11px; gap: 8px; }
+  #chatModal .mx-av { width: 34px; height: 34px; font-size: 14px; }
+  #chatModal .mx-ti b { font-size: 13px; }
+  #chatModal .mx-ti small { font-size: 10px; }
+  #chatModal #mxTabs { margin: 7px 9px 6px; padding: 3px; gap: 3px; }
+  #chatModal .mx-tab { padding: 6px 4px; font-size: 11px; }
+  #chatModal .mx-panel { margin: 0 9px 6px; padding: 8px; border-radius: 11px; }
+  #chatModal .mx-row { gap: 6px; margin-bottom: 6px; }
+  #chatModal .mx-in { height: 31px; font-size: 11px; }
+  #chatModal .mx-btn { height: 29px; padding: 0 10px; font-size: 10.5px; border-radius: 9px; }
+  #chatModal .mx-btn.sm { height: 26px; }
+  #chatModal .mx-mini { width: 25px; height: 25px; }
+  #chatModal #mxPeer { display: flex; flex-direction: column; min-height: 0; max-height: none; overflow: hidden; flex: 1 1 auto; }
+  #chatModal #mxPeer[hidden] { display: none !important; }
+  #chatModal .mx-peer-actions { flex: none; }
+  #chatModal .mx-peer-hint { margin: 0 0 5px; flex: none; font-size: 10px; }
+  #chatModal .mx-directory-tabs { display: flex; gap: 5px; margin: 1px 0 7px; padding: 3px; border-radius: 10px; background: #eaf2fc; flex: none; }
+  #chatModal .mx-dir-btn { flex: 1; min-width: 0; height: 29px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 6px; border: 1px solid transparent; border-radius: 8px; color: #45546b; background: transparent; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+  #chatModal .mx-dir-btn .ic { font-size: 12px; }
+  #chatModal .mx-dir-btn em { min-width: 17px; padding: 1px 4px; border-radius: 999px; background: #d5e8ff; color: #154a86; font-size: 9px; font-style: normal; }
+  #chatModal .mx-dir-btn.active { background: #fff; border-color: #cfe2f8; color: #1458a6; box-shadow: 0 1px 4px #1b4e8014; }
+  #chatModal .mx-directory-content { display: none; min-height: 0; overflow-y: auto; flex: 1 1 auto; margin-top: 0 !important; padding: 0 2px 3px; scrollbar-width: thin; }
+  #chatModal #mxRecent { display: none; }
+  #chatModal[data-mode="dm"][data-directory="chat"] #mxRecent { display: flex; max-height: 62px; overflow-y: auto; flex-wrap: wrap; gap: 5px; margin: 0 0 5px; }
+  #chatModal[data-mode="dm"][data-directory="users"] #mxUsers,
+  #chatModal[data-mode="dm"][data-directory="requests"] #mxFriendRequests { display: block; }
+  #chatModal[data-mode="dm"][data-directory="users"] #mxRecent,
+  #chatModal[data-mode="dm"][data-directory="requests"] #mxRecent { display: none; }
+  #chatModal[data-mode="dm"][data-directory="users"] #mxListWrap,
+  #chatModal[data-mode="dm"][data-directory="requests"] #mxListWrap,
+  #chatModal[data-mode="dm"][data-directory="users"] #chatBar,
+  #chatModal[data-mode="dm"][data-directory="requests"] #chatBar { display: none !important; }
+  #chatModal[data-mode="dm"][data-directory="users"] #mxPeer,
+  #chatModal[data-mode="dm"][data-directory="requests"] #mxPeer { flex: 1 1 0; min-height: 0; }
+  #chatModal .mx-directory-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 0; padding: 7px 8px; margin-bottom: 3px; border-radius: 8px; background: #eaf4ff; color: #183a61; border: 1px solid #d6eaff; }
+  #chatModal .mx-directory-heading b { font-size: 11px; }
+  #chatModal .mx-directory-heading span { font-size: 9.5px; color: #436b98; }
+  #chatModal .mx-list-empty { padding: 18px 8px; text-align: center; color: #5c6e84; background: #f2f8ff; border: 1px dashed #c9def5; border-radius: 9px; font-size: 11px; }
+  #chatModal .mx-urow { gap: 7px; padding: 6px 5px; margin-bottom: 3px; border: 1px solid #e4eef9; border-radius: 9px; background: #f8fbff; }
+  #chatModal .mx-urow:hover { background: #edf6ff; border-color: #c9e2ff; }
+  #chatModal .mx-mav { width: 28px; height: 28px; font-size: 11px; }
+  #chatModal .mx-mn b { color: #111827; background: #edf6ff; border-radius: 4px; padding: 1px 3px; font-size: 11px; }
+  #chatModal .mx-mn small { color: #42536a; font-size: 9px; }
+  #chatModal .mx-urow .mx-btn { height: 25px; }
+  #chatModal #mxList { padding: 7px 9px 9px; gap: 3px; }
+  /* Readable message typography and WhatsApp-like selection actions */
+  #chatModal .mx-t{font-size:13.5px;line-height:1.65;font-weight:500;letter-spacing:.08px;color:#111827;overflow-wrap:anywhere}
+  #chatModal .mx-b{padding:9px 11px;border-radius:13px}
+  #chatModal .mx-nm{font-size:11.5px;font-weight:800;margin-bottom:3px}
+  #chatModal .mx-time{font-size:10px;color:#64748b}
+  #chatModal .mx-m{cursor:pointer;border-radius:10px;transition:background .12s,outline-color .12s}
+  #chatModal .mx-m.selected{background:rgba(59,130,246,.13);outline:2px solid #60a5fa;outline-offset:1px}
+  #chatModal #mxSelectBar{display:none!important;align-items:center;gap:7px;padding:6px 10px;background:#eef5ff;border-bottom:1px solid #cfe0fb;flex:none}
+  #chatModal #mxSelectBar[hidden]{display:none!important}
+  #chatModal #mxSelectedLabel{font-weight:700;color:#1e3a8a;flex:1}
+  #chatModal #mxContextMenu{position:fixed;z-index:10020;background:#fff;border:1px solid #dbe2ee;border-radius:9px;padding:4px;box-shadow:0 8px 28px #17255430;min-width:135px}
+  #chatModal #mxContextMenu button{width:100%;border:0;background:#fff;color:#172033;text-align:left;padding:9px 12px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer} #chatModal #mxContextDelete{color:#b91c1c} #chatModal #mxContextMenu button:hover{background:#eff6ff} #chatModal .mx-media-wrap{position:relative;display:inline-block;width:min(260px,100%);max-width:100%;vertical-align:top} #chatModal .mx-media-download{position:absolute;right:8px;bottom:8px;z-index:2;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.72);background:rgba(255,255,255,.48);color:#075bd8;display:grid;place-items:center;box-shadow:0 4px 14px rgba(15,23,42,.22),inset 0 1px 0 rgba(255,255,255,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;transition:transform .18s ease,background .18s ease,box-shadow .18s ease} #chatModal .mx-media-download:hover{background:rgba(255,255,255,.82);transform:translateY(-2px) scale(1.05);box-shadow:0 6px 18px rgba(15,23,42,.28),inset 0 1px 0 rgba(255,255,255,.9)} #chatModal .mx-media-download:active{transform:scale(.94)} #chatModal .mx-media-download .ic{width:18px;height:18px;filter:drop-shadow(0 1px 1px rgba(255,255,255,.7))} #chatModal .mx-media-download .ic{width:17px;height:17px} #chatModal .mx-t{font-size:15px;line-height:1.55}
+  #chatModal #mxContextMenu button:hover{background:#fff1f2}
+  #chatModal .mx-foot .del{display:none!important}
+  #chatModal .mx-day { margin: 7px 0 4px; padding: 3px 8px; font-size: 9px; background: #e4f2ff; color: #234b75; }
+  #chatModal .mx-sys { background: #fff4cf; color: #493700; border-color: #ffe49a; }
+  #chatModal .mx-nm { color: #172033; background: #e7f3ff; padding: 1px 5px; border-radius: 5px; width: fit-content; font-size: 10px; }
+  #chatModal .mx-b, #chatModal .mx-m.me .mx-b { background: #edf7ff; color: #080d16; border: 1px solid #cfe5fa; box-shadow: 0 1px 3px rgba(25,75,125,.08); padding: 7px 10px 6px; font-size: 12px; line-height: 1.48; }
+  #chatModal .mx-m.me .mx-b { background: #e2f1ff; border-color: #b8dafb; }
+  #chatModal .mx-b a { color: #064f9e; }
+  #chatModal .mx-foot { color: #36475d; font-size: 9px; }
+  #chatModal .mx-m.me .mx-fb { background: #c7e4ff; color: #123e68; }
+  #chatModal #chatBar { padding: 7px 9px 9px; gap: 6px; }
+  #chatModal .mx-ib.dark { width: 31px; height: 31px; border-radius: 9px; }
+  #chatModal #chatInput { height: 33px; padding: 7px 11px; font-size: 11.5px; }
+  #chatModal .mx-send { width: 33px; height: 33px; }
+  #chatModal #mxNotice { margin: 0 9px 6px; padding: 6px 8px; font-size: 10px; }
+  #chatModal #mxGroups { padding: 1px 9px 7px; }
+  #chatModal .mx-gc { height: 27px; padding: 0 10px; font-size: 10.5px; }
+  #chatModal #mxInvites { max-height: 100px; }
+  #chatModal .mx-inv { margin: 0 9px 6px; padding: 8px; font-size: 10.5px; }
+  #chatModal #mxToast { bottom: 55px; font-size: 10.5px; padding: 8px 10px; }
+  @media (max-width: 520px) {
+    #chatModal { width: 100vw; height: 100dvh; max-height: 100dvh; right: 0; bottom: 0; border-radius: 0; }
+    #chatModal #mxPeer { margin-bottom: 5px; }
+  }
+
+
+  /* Compact messenger + full-height directory/chat area */
+  #chatModal{width:min(360px,calc(100vw - 16px));height:min(590px,calc(100vh - 28px));right:10px;bottom:10px;border-radius:17px}
+  #chatModal #mxHead{padding:9px 10px;gap:7px}
+  #chatModal .mx-av{width:32px;height:32px;font-size:13px}
+  #chatModal .mx-ti b{font-size:12px}
+  #chatModal .mx-ti small{font-size:9px}
+  #chatModal #mxTabs{margin:6px 8px;padding:3px;gap:3px}
+  #chatModal .mx-tab{padding:7px 4px;font-size:10px}
+  #chatModal .mx-panel{margin:0 8px 6px;padding:8px;border-radius:11px}
+  #chatModal .mx-hint{font-size:9px}
+  #chatModal .mx-in{height:31px;font-size:10px}
+  #chatModal .mx-btn{min-height:26px;padding:4px 8px;font-size:10px}
+  #chatModal #mxDirectory{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+  #chatModal #mxPeer{flex:1 1 auto;min-height:0;max-height:none;overflow:hidden}
+  #chatModal #mxUsers,#chatModal #mxFriendRequests{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
+  #chatModal #mxRecent{flex:none}
+  #chatModal #mxListWrap{flex:1 1 auto;min-height:0}
+  #chatModal #mxList{min-height:0}
+  #chatModal #chatBar{flex:none;padding:7px;gap:5px}
+  #chatModal #chatInput{font-size:11px;min-height:29px;height:29px}
+  #chatModal .mx-ib{width:27px;height:27px}
+  #chatModal .mx-send{width:30px;height:30px}
+  #chatModal .mx-m{margin-bottom:4px}
+  #chatModal .mx-b{padding:7px 9px;border-radius:12px}
+  #chatModal .mx-t{font-size:11px;line-height:1.45;color:#111827}
+  #chatModal .mx-time{font-size:9px}
+  #chatModal .mx-directory-content{min-height:0}
+  @media(max-width:480px){#chatModal{width:calc(100vw - 12px);max-width:calc(100vw - 12px);height:calc(100vh - 16px);right:6px;bottom:8px;border-radius:15px}}
+</style>
+
+<script id="webChatBridge">
+(()=>{'use strict';
+const $=id=>document.getElementById(id);const FIRESTORE='https://firestore.googleapis.com/v1/projects/nishatmutationautofill-3bde4/databases/(default)/documents/config/chat';
+let ws=null,base='',uid='',uploadKey='',sessionToken='',username='User',conn='idle',admin=false,unread=0,messages=[],protocolHandlers=[],stateHandlers=[],deletedHandlers=[],pendingFile=null,closedByUser=false,manualLogout=false;
+const sendRaw=o=>{if(!ws||ws.readyState!==WebSocket.OPEN)return false;try{ws.send(JSON.stringify(o));return true}catch(_){return false}};
+const emit=()=>{const s=snapshot();stateHandlers.forEach(fn=>{try{fn(s)}catch(e){console.error(e)}})};
+function snapshot(){return {conn,uid,username,admin,unread,messages:messages.slice(-500),note:'',upload:null}}
+function cleanFile(f){if(!f)return undefined;return {id:String(f.id||''),name:String(f.name||'file'),size:Number(f.size)||0,mime:String(f.mime||''),img:!!f.img,iv:f.iv,tag:f.tag}}
+function cleanSupport(m){return {id:String(m.mid||m.id||''),from:m.from==='user'?'me':(m.from==='announce'?'announce':'admin'),text:String(m.text||''),ts:Number(m.ts)||Date.now(),status:'sent',file:cleanFile(m.file)}}
+function notifyProtocol(m){protocolHandlers.slice().forEach(fn=>{try{fn(m)}catch(e){console.error(e)}})}
+function setConn(v){conn=v;emit()}
+async function serverBase(){const r=await fetch(FIRESTORE,{cache:'no-store'});if(!r.ok)throw Error('Firestore থেকে chat server URL পাওয়া যায়নি।');const j=await r.json();const u=j.fields?.serverUrl?.stringValue;if(!u||!/^https:\/\//i.test(u))throw Error('config/chat-এর serverUrl সঠিক নয়।');return u.replace(/\/+$/,'')}
+function handle(m){if(!m||typeof m.t!=='string')return;
+if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
+switch(m.t){case 'welcome':uid=String(m.uid||m.userId||'');uploadKey=String(m.uploadKey||'');sessionToken=String(m.sessionToken||'');if(sessionToken&&$('webStayLoggedIn').checked){try{localStorage.setItem('mxWebSession',JSON.stringify({id:uid,token:sessionToken,stay:true}))}catch(_){}}admin=!!m.admin;username='User';messages=(m.history||[]).map(cleanSupport);unread=0;setConn('connected');if(Array.isArray(m.friends)||Array.isArray(m.requests))notifyProtocol({t:'welcome',uid,friends:m.friends||[],requests:m.requests||[]});notifyProtocol({t:'group_history',gid:'public',messages:m.groupHistory||[]});sendRaw({t:'groups_list'});sendRaw({t:'users_list'});break;
+case 'msg':{const x=cleanSupport({...m,from:m.kind==='announce'?'announce':'admin'});if(!messages.some(y=>y.id===x.id))messages.push(x);unread++;emit();break}
+case 'ack':{const i=messages.findIndex(x=>x.cid===m.cid);if(i>=0){messages[i].id=String(m.mid);messages[i].status='sent';messages[i].ts=Number(m.ts)||Date.now()}emit();break}
+case 'deleted':messages=messages.filter(x=>x.id!==String(m.mid));deletedHandlers.forEach(fn=>fn(String(m.mid)));emit();break;
+case 'presence':admin=!!m.admin;emit();break;
+case 'banned':setConn('banned');alert(m.reason||'Chat access disabled');try{ws.close()}catch(_){}break;
+case 'err':if(m.code==='rate')alert('অনেক দ্রুত মেসেজ পাঠাচ্ছেন — একটু অপেক্ষা করুন।');break;
+}}
+async function connect(id,code,token){base=await serverBase();uid=id;setConn('connecting');const url=base.replace(/^https:/,'wss:')+'/ws';ws=new WebSocket(url);ws.addEventListener('open',()=>sendRaw(token?{t:'pair_resume',id,token}:{t:'pair_hello',id,code}));ws.addEventListener('message',ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}if(m.t==='pair_error'){ $('webPairErr').textContent=({invalid_or_expired_code:'কোড ভুল, মেয়াদ শেষ, অথবা ইতিমধ্যে ব্যবহার করা হয়েছে।',rate_limited:'অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।',unknown_machine:'Machine ID পাওয়া যায়নি।',banned:'এই অ্যাকাউন্টে চ্যাট বন্ধ।'}[m.error]||('Pairing ব্যর্থ: '+m.error));setConn('offline');return}handle(m)});ws.addEventListener('close',()=>{if(conn==='connected'||conn==='connecting')setConn('offline');if(!closedByUser&&!manualLogout){$('webPairGate').style.display='grid';$('webPairErr').textContent='সংযোগ বিচ্ছিন্ন হয়েছে। পুনরায় সংযোগের চেষ্টা করুন।';$('chatModal').classList.remove('web-authenticated')}});ws.addEventListener('error',()=>{$('webPairErr').textContent='সার্ভারে সংযোগ করা যায়নি। HTTPS/server URL পরীক্ষা করুন।'});return new Promise((resolve,reject)=>{const started=Date.now();const timer=setInterval(()=>{if(conn==='connected'){clearInterval(timer);$('webPairGate').style.display='none';$('chatModal').classList.add('web-authenticated');resolve({ok:true})}else if(conn==='offline'&&Date.now()-started>1500){clearInterval(timer);reject(Error($('webPairErr').textContent||'Pairing failed'))}else if(Date.now()-started>12000){clearInterval(timer);reject(Error('সার্ভারের উত্তর আসেনি।'))}},100)})}
+function upload(file,caption,opts){return new Promise(async resolve=>{try{if(!file||!uploadKey||conn!=='connected')return resolve({ok:false,error:'সংযোগ নেই'});if(file.size>150*1024*1024)return resolve({ok:false,error:'সর্বোচ্চ ১৫০ MB ফাইল পাঠানো যাবে'});const headers={'Content-Type':'application/octet-stream','X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-File-Name':encodeURIComponent(file.name)};if(caption)headers['X-Caption']=encodeURIComponent(caption.slice(0,500));if(opts?.scope){headers['X-Scope']=opts.scope;headers['X-Peer']=opts.peer}const r=await fetch(base+'/upload',{method:'POST',headers,body:file});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)return resolve({ok:false,error:j.error||('Upload failed '+r.status)});if(!opts?.scope){const x={id:String(j.mid),from:'me',text:String(j.text||caption||('📎 '+file.name)),ts:Number(j.ts)||Date.now(),status:'sent',file:cleanFile(j.file)};messages.push(x);emit()}resolve({ok:true})}catch(e){resolve({ok:false,error:e.message||'Upload failed'})}})}
+window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid)+'?dl=1');if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ'};const b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name||'download';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000);return{ok:true}}catch(e){return{ok:false,error:e.message}}},previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
+$('mxProtocolFile').addEventListener('change',async e=>{const f=e.target.files?.[0],p=pendingFile;pendingFile=null;if(!p)return;if(!f)return p.resolve({ok:false,canceled:true});const r=await upload(f,p.caption,p.opts);p.resolve(r)});
+$('webPairForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('webPairSubmit'),err=$('webPairErr');err.textContent='';b.disabled=true;const id=$('webMachineId').value.trim(),code=$('webPairCode').value.trim();if(!/^[A-Za-z0-9_-]{6,128}$/.test(id)||!/^\d{8}$/.test(code)){err.textContent='Machine ID বা ৮ সংখ্যার কোড সঠিক নয়।';b.disabled=false;return}try{await connect(id,code);$('webPairCode').value='';$('webReopen').style.display='none';if(!$('webStayLoggedIn').checked){try{localStorage.removeItem('mxWebSession')}catch(_){}}}catch(ex){err.textContent=ex.message||'সংযোগ ব্যর্থ'}finally{b.disabled=false}});
+$('webLogoutBtn').addEventListener('click',()=>{manualLogout=true;try{if(ws&&ws.readyState===WebSocket.OPEN)sendRaw({t:'pair_logout',id:uid,token:sessionToken});localStorage.removeItem('mxWebSession')}catch(_){}closedByUser=true;try{ws?.close(1000,'logout')}catch(_){}ws=null;uid='';uploadKey='';sessionToken='';messages=[];setConn('offline');$('chatModal').classList.remove('web-authenticated');$('webPairGate').style.display='grid';$('webPairErr').textContent='আপনি লগআউট করেছেন। আবার প্রবেশ করতে pairing code দিন।';$('webPairCode').value='';$('webReopen').style.display='none';manualLogout=false;closedByUser=false;});
+(async()=>{try{const saved=JSON.parse(localStorage.getItem('mxWebSession')||'null');if(saved&&saved.stay&&saved.id&&saved.token){$('webMachineId').value=saved.id;$('webStayLoggedIn').checked=true;await connect(saved.id,'',saved.token);$('webPairCode').value='';$('webReopen').style.display='none'}}catch(e){try{localStorage.removeItem('mxWebSession')}catch(_){}$('webPairErr').textContent='সংরক্ষিত লগইন যাচাই করা যায়নি। নতুন pairing code দিয়ে প্রবেশ করুন।'}})();
+$('webReopen').addEventListener('click',()=>{$('chatModal').classList.add('web-authenticated');$('webReopen').style.display='none'});
+const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTimeout(()=>{$('webReopen').style.display='block'},0)});
+})();
+</script>
+
+<script>
+(function () {
+  const api = window.chatAPI;
+  if (!api) return;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const NS = "http://www.w3.org/2000/svg";
+  function ic(name, cls) {
+    const s = document.createElementNS(NS, "svg"); s.setAttribute("class", "ic" + (cls ? " " + cls : "")); s.setAttribute("aria-hidden", "true");
+    const u = document.createElementNS(NS, "use"); u.setAttribute("href", "#mxi-" + name); s.appendChild(u); return s;
+  }
+  function btn(cls, icon, label, title, fn) {
+    const b = el("button", cls); b.type = "button"; if (title) b.title = title;
+    if (icon) b.appendChild(ic(icon)); if (label) b.appendChild(document.createTextNode(label));
+    if (fn) b.addEventListener("click", (e) => { e.stopPropagation(); fn(); }); return b;
+  }
+  const modal = $("chatModal"), list = $("mxList"), input = $("chatInput"), sendBtn = $("chatSend"),
+        attachBtn = $("chatAttach"), upBox = $("chatUp"), upT = $("chatUpT"), upB = $("chatUpB");
+
+  const PUB = "public";   // Public group (everyone is here)
+  const S = {
+    open: false, min: false, mode: "admin", st: null, uid: "", peer: "", notice: "",
+    gm: { [PUB]: [] }, gid: PUB, gpanel: false, gq: "", groups: [], invites: [], info: false, create: false, pendingJoin: "", unreadGid: Object.create(null),
+    dm: Object.create(null), users: [], friends: [], requests: [], unreadD: 0, unreadPeer: Object.create(null),
+    newBelow: 0, busy: new Set(), prev: new Map(), working: false, local: "", localTimer: 0, directory: "chat",
+    seen: 0, seq: 0, sidebarForced: false, selected: null, contextItem: null
+  };
+  const RISKY = /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|vbe|js|jse|jar|lnk|hta|reg|dll|apk|iso|wsf|cpl)$/i;
+  const EMOJIS = "😀 😁 😂 🤣 😊 😍 😘 😎 🤔 😢 😭 😡 👍 👎 🙏 👏 💪 🎉 ❤️ 🔥 ✅ ❌ ⭐ 💯 🙂 😉 😅 🤝 👌 🙌 😇 🥰 😴 🤗 😮 😐 👋 📎 📞 ⏰".split(" ");
+  const GERR = {
+    name_required: "Please enter a group name.", too_many_groups: "You can create up to 10 groups.", group_not_found: "Group not found.",
+    not_admin: "Only the group admin can do this.", user_not_found: "No user found with this ID.", already_member: "User is already a member.",
+    already_invited: "This user has already been invited.", group_full: "Group is full (maximum 50 members).", not_member: "You are not a member of this group.",
+    owner_cannot_leave: "The admin cannot leave the group. Delete the group instead.", too_many_invites: "This user has too many pending invitations."
+  };
+  const fsize = (n) => n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(1) + " KB" : (n / 1048576).toFixed(1) + " MB";
+  const fmt = (ts) => { try { return new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }); } catch (_) { return ""; } };
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  const dayLabel = (t) => sameDay(t, Date.now()) ? "Today" : sameDay(t, Date.now() - 864e5) ? "Yesterday" : new Date(t).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+  const protoOK = () => !!(api.sendProtocol && api.onProtocolMessage);
+  const canSend = () => { const c = S.st ? S.st.conn : "connecting"; return !["locked", "banned", "disabled"].includes(c); };
+  const viewing = () => S.open && !S.min;
+  const COLORS = ["#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#dc2626", "#4d7c0f"];
+  const colorOf = (s) => { let h = 0; s = String(s || "?"); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return COLORS[h % COLORS.length]; };
+  const initial = (s) => (String(s || "?").trim()[0] || "?").toUpperCase();
+  const gList = (gid) => (S.gm[gid] = S.gm[gid] || []);
+  const curGroup = () => S.gid === PUB ? null : (S.groups.find((g) => g.id === S.gid) || null);
+  const iAmAdmin = (g) => !!g && !!S.uid && g.owner === S.uid;
+  const ugTotal = () => Object.values(S.unreadGid).reduce((a, b) => a + b, 0);
+  function nameOf(id) {
+    for (const g of S.groups) { const x = g.members.find((m) => m.id === id); if (x && x.name) return x.name; }
+    const u = S.users.find((x) => x.id === id); return (u && u.name) || id;
+  }
+  const sharesGroupWith = (id) => S.groups.some((g) => g.members.some((m) => m.id === id));
+
+  function toast(msg, ms = 3000) {
+    const t = $("mxToast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms);
+  }
+  function flash(msg, ms = 3500) { S.local = msg; clearTimeout(S.localTimer); S.localTimer = setTimeout(() => { S.local = ""; render(); }, ms); render(); }
+
+  /* ---------- Dock sidebar: keep chat above the website view ---------- */
+  const sidebarEl = $("sidebar");
+  function showSidebar() {
+    if (sidebarEl && sidebarEl.classList.contains("hidden")) {
+      sidebarEl.classList.remove("hidden"); S.sidebarForced = true;
+      try { window.electronAPI?.toggleSidebarState?.(false); } catch (_) {}
+    }
+  }
+  function restoreSidebar() {
+    if (S.sidebarForced && sidebarEl && !sidebarEl.classList.contains("hidden")) {
+      sidebarEl.classList.add("hidden");
+      try { window.electronAPI?.toggleSidebarState?.(true); } catch (_) {}
+    }
+    S.sidebarForced = false;
+  }
+  $("btnToggleSidebar")?.addEventListener("click", (e) => {
+    if (S.open) { e.stopImmediatePropagation(); e.preventDefault(); toast("The sidebar cannot be hidden while chat is open"); }
+  }, true);
+
+  /* ---------- Protocol (group/private) ---------- */
+  function sendProto(packet) {
+    if (!protoOK()) return Promise.resolve({ ok: false, error: "Bridge unavailable (preload)" });
+    try { return Promise.resolve(api.sendProtocol(packet)).then((r) => r === undefined ? { ok: true } : r, (e) => ({ ok: false, error: (e && e.message) || "send_failed" })); }
+    catch (e) { return Promise.resolve({ ok: false, error: (e && e.message) || "send_failed" }); }
+  }
+  const dmList = (peer) => (S.dm[peer] = S.dm[peer] || []);
+  const pushUnique = (arr, m) => { if (!m.id || !arr.some((x) => x.id === m.id)) arr.push(m); if (arr.length > 200) arr.splice(0, arr.length - 200); };
+  const textOf = (m) => String(m.text || m.caption || "");
+  const localIdx = (arr, msg) => arr.findIndex((x) => x.local && x.text === textOf(msg));
+  function settle(arr, msg) { const i = localIdx(arr, msg); if (i >= 0) arr.splice(i, 1); }
+
+  function recents() { try { return JSON.parse(localStorage.getItem("mxRecentPeers") || "[]"); } catch (_) { return []; } }
+  function saveRecent(id) { if (!id) return; try { const r = recents().filter((x) => x !== id); r.unshift(id); localStorage.setItem("mxRecentPeers", JSON.stringify(r.slice(0, 8))); } catch (_) {} }
+  function forgetRecent(id) { try { localStorage.setItem("mxRecentPeers", JSON.stringify(recents().filter((x) => x !== id))); } catch (_) {} }
+
+  function isMine(m) {
+    if (m.local || m.mine === true) return true;
+    const from = String(m.from || m.fromId || m.userId || "");
+    const me = String(S.uid || (S.st && (S.st.uid || S.st.userId || S.st.id)) || api.userId || "");
+    return !!me && !!from && from === me;
+  }
+  function dropById(id) {
+    for (const k in S.gm) S.gm[k] = S.gm[k].filter((x) => String(x.id || x.mid || "") !== id);
+    for (const k in S.dm) S.dm[k] = S.dm[k].filter((x) => String(x.id || x.mid || "") !== id);
+  }
+  function groupGone(gid) {
+    S.groups = S.groups.filter((g) => g.id !== gid); delete S.gm[gid]; delete S.unreadGid[gid];
+    if (S.gid === gid) { S.gid = PUB; S.info = false; if (protoOK()) sendProto({ t: "group_open", gid: PUB }); }
+  }
+
+  function onProto(m) {
+    if (!m || typeof m.t !== "string") return;
+    S.seen++;
+    const msg = m.message || (m.text != null ? m : null);
+    switch (m.t) {
+      case "pair_code":
+        $("mxPairCode").textContent = String(m.code || ""); $("mxPairResult").hidden = !m.code; toast("One-time pairing code created; valid for 5 minutes"); break;
+      case "pair_error": toast("Pairing error: " + String(m.error || "unknown")); break;
+      case "welcome":
+        S.uid = String(m.uid || m.userId || m.id || S.uid || "");
+        if (Array.isArray(m.friends)) S.friends = m.friends; if (Array.isArray(m.requests)) S.requests = m.requests;
+        break;
+      case "users_list": S.users = m.users || []; S.friends = m.friends || S.friends; S.requests = m.requests || S.requests; break;
+      case "groups_list":
+        S.groups = m.groups || []; S.invites = m.invites || [];
+        if (S.gid !== PUB && !S.groups.some((g) => g.id === S.gid)) { S.gid = PUB; S.info = false; }
+        if (S.pendingJoin && S.groups.some((g) => g.id === S.pendingJoin)) { const gid = S.pendingJoin; S.pendingJoin = ""; if (S.mode === "group") switchGroup(gid, true); }
+        break;
+      case "group_created":
+        if (m.group) { if (!S.groups.some((g) => g.id === m.group.id)) S.groups.push(m.group); S.create = false; S.mode = "group"; S.gid = m.group.id; S.info = true; S.notice = "Group created — you are the admin. Invite members using their IDs below."; sendProto({ t: "users_list" }); }
+        break;
+      case "group_invite":
+        if (m.invite) { S.invites = [...S.invites.filter((x) => x.gid !== m.invite.gid), m.invite]; if (S.mode === "group" && viewing()) S.notice = "New group invitation: " + m.invite.gname; }
+        break;
+      case "group_invite_sent": S.notice = (m.toName || m.to) + " was invited. They will become a member after accepting."; break;
+      case "group_removed": {
+        const g = S.groups.find((x) => x.id === m.gid);
+        S.notice = m.reason === "kicked" ? "You were removed from \"" + (g ? g.name : "Group") + "\"." : m.reason === "deleted" ? "\"" + (g ? g.name : "Group") + "\" was deleted." : "";
+        groupGone(m.gid); break;
+      }
+      case "group_notice": if (m.gid) { const a = gList(m.gid); a.push({ id: "s" + (++S.seq), sys: true, text: m.text, ts: Date.now() }); } break;
+      case "group_error": S.notice = GERR[m.error] || "The group action could not be completed."; S.pendingJoin = ""; break;
+      case "friend_request": if (m.request) { S.requests = [...S.requests.filter((x) => x.from !== m.request.from), m.request]; S.notice = "New friend request from: " + (m.request.name || m.request.from); } break;
+      case "friend_request_sent": S.notice = "Friend request sent. You can chat privately after it is accepted."; break;
+      case "friend_accepted": if (m.peerId && !S.friends.includes(m.peerId)) S.friends.push(m.peerId); S.notice = "Friend request accepted."; break;
+      case "friend_error": S.notice = m.error === "already_friends" ? "You are already friends." : "Could not send friend request."; break;
+      case "group_history": {
+        const gid = m.gid || PUB;
+        if (Array.isArray(m.messages)) S.gm[gid] = m.messages.concat(gList(gid).filter((x) => x.local || x.sys));
+        break;
+      }
+      case "group_msg":
+        if (msg) {
+          const gid = msg.gid || PUB, arr = gList(gid);
+          let mine = isMine(msg);
+          if (!mine && !S.uid && localIdx(arr, msg) >= 0) { mine = true; if (msg.from) S.uid = String(msg.from); }
+          if (mine) { msg.mine = true; settle(arr, msg); }
+          pushUnique(arr, msg);
+          if (!mine && !(viewing() && S.mode === "group" && S.gid === gid)) S.unreadGid[gid] = (S.unreadGid[gid] || 0) + 1;
+        }
+        break;
+      case "dm_history":
+        if (m.peerId && Array.isArray(m.messages)) S.dm[m.peerId] = m.messages.concat(dmList(m.peerId).filter((x) => x.local));
+        break;
+      case "dm_sent":
+        if (msg) {
+          const key = msg.to || m.peerId || S.peer;
+          if (key) { if (msg.from && !S.uid) S.uid = String(msg.from); msg.mine = true; const a = dmList(key); settle(a, msg); pushUnique(a, msg); saveRecent(key); }
+        }
+        break;
+      case "dm_msg":
+        if (msg) {
+          let mine = isMine(msg);
+          if (!mine && !S.uid && S.peer && String(msg.from) !== S.peer && localIdx(dmList(S.peer), msg) >= 0) { mine = true; if (msg.from) S.uid = String(msg.from); }
+          const key = mine ? (msg.to || m.peerId || S.peer) : (msg.from || m.peerId);
+          if (key) {
+            const a = dmList(key);
+            if (mine) { msg.mine = true; settle(a, msg); }
+            pushUnique(a, msg);
+            if (!mine) {
+              saveRecent(key);
+              if (!(viewing() && S.mode === "dm" && S.peer === key)) { S.unreadD++; S.unreadPeer[key] = (S.unreadPeer[key] || 0) + 1; }
+            }
+          }
+        }
+        break;
+      case "group_deleted": case "dm_deleted": case "delete_ack": {
+        if (m.ok === false) { S.notice = "Could not delete message."; break; }
+        const id = String(m.mid || m.id || ""); if (id) dropById(id);
+        break;
+      }
+      case "dm_error": S.notice = "Could not open private chat. Check the ID — you must be friends or members of the same group."; break;
+      case "err": if (m.code === "rate") S.notice = "You are sending messages too quickly. Please try again shortly."; break;
+      default: try { console.debug("[chat] proto", m); } catch (_) {}
+    }
+    render();
+  }
+
+  /* ---------- Files in Support chat ---------- */
+  async function chooseAndSendFile() {
+    if (S.working || !canSend()) return;
+    if (!S.st || S.st.conn !== "connected") return;
+    if (S.mode === "dm" && !S.peer) { flash("Choose a friend first."); return; }
+    if (typeof api.sendFile !== "function") { flash("File sending is unavailable in this version."); return; }
+    // Same encrypted upload path for Support, groups and private chats (the server delivers the message over the websocket)
+    const opts = S.mode === "group" ? { scope: "group", peer: S.gid } : S.mode === "dm" ? { scope: "dm", peer: S.peer } : undefined;
+    S.working = true;
+    const caption = input.value.trim(); S.local = "📎 Choose a file…"; render();
+    try {
+      const r = await api.sendFile(caption, opts);
+      if (r && r.ok === false && !r.canceled) flash(r.error || "Could not send file");
+      else if (r && r.ok && caption) { input.value = ""; grow(); }
+    } catch (e) { flash((e && e.message) || "Could not send file"); }
+    finally { S.working = false; S.local = ""; render(); list.scrollTop = list.scrollHeight; }
+  }
+  attachBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if (!attachBtn.disabled) chooseAndSendFile(); });
+
+  async function saveFile(f) { const r = await api.saveFile(f.id, f.name); if (r && r.ok === false && !r.canceled) flash(r.error || "Download failed"); }
+  let lbFile = null;
+  function openLb(f) { const u = S.prev.get(f.id); if (!u) return; lbFile = f; $("lbImg").src = u; $("chatLb").hidden = false; }
+  const closeLb = () => { $("chatLb").hidden = true; $("lbImg").src = ""; lbFile = null; };
+  $("lbX").addEventListener("click", closeLb);
+  $("chatLb").addEventListener("click", (e) => { if (e.target.id === "chatLb") closeLb(); });
+  $("lbSave").addEventListener("click", () => lbFile && saveFile(lbFile));
+
+  /* ---------- Confirmation dialog ---------- */
+  let confCancel = null;
+  function confirmBox(title, text, yes) {
+    return new Promise((resolve) => {
+      const box = $("mxConf");
+      $("mxConfT").textContent = title; $("mxConfP").textContent = text; $("mxConfYes").textContent = yes || "Delete";
+      box.hidden = false;
+      const done = (v) => { box.hidden = true; $("mxConfYes").onclick = $("mxConfNo").onclick = box.onclick = null; confCancel = null; resolve(v); };
+      confCancel = () => done(false);
+      $("mxConfYes").onclick = () => done(true); $("mxConfNo").onclick = () => done(false);
+      box.onclick = (e) => { if (e.target === box) done(false); };
+      $("mxConfNo").focus();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !S.open) return;
+    if (confCancel) confCancel(); else if (!$("chatLb").hidden) closeLb(); else $("mxEmoji").hidden = true;
+  });
+
+  /* ---------- Delete ---------- */
+  function removeLocalItem(it) {
+    if (S.mode === "group") S.gm[S.gid] = gList(S.gid).filter((x) => x !== it.ref);
+    else if (S.peer) S.dm[S.peer] = dmList(S.peer).filter((x) => x !== it.ref);
+  }
+  async function deleteItem(it) {
+    // Electron chat: delete immediately without a confirmation dialog.
+    if (it.local) { removeLocalItem(it); render(); return; }
+    S.busy.add(it.key); render();
+    let r;
+    try {
+      if (it.scope === "admin") {
+        const messageId = String(it.mid || it.id || it.ref?.mid || it.ref?.id || "").trim();
+        if (api.deleteMessage && messageId) r = await api.deleteMessage(messageId);
+        else r = { ok: false, error: "Message ID not found. Fully restart the app. If the issue persists, check that chat-module.js and preload.js versions match." };
+      } else r = await sendProto({ t: "delete_msg", mid: it.mid, scope: it.scope, gid: S.gid, peerId: S.peer });
+    } catch (_) { r = { ok: false, error: "Delete failed" }; }
+    S.busy.delete(it.key);
+    const okRes = it.scope === "admin" ? !!(r && r.ok) : !(r && r.ok === false);
+    if (okRes) {
+      if (it.file) S.prev.delete(it.file.id);
+      if (it.scope === "admin") { if (S.st && S.st.messages) S.st.messages = S.st.messages.filter((x) => !(it.mid && String(x.mid || x.id || "") === String(it.mid)) && !(it.file && x.file && x.file.id === it.file.id)); }
+      else dropById(String(it.mid));
+      render();
+    } else { render(); toast("⚠️ " + ((r && r.error) || "Delete failed")); }
+  }
+  api.onDeleted?.((mid) => { if (S.st && S.st.messages) S.st.messages = S.st.messages.filter((x) => x.mid !== mid); dropById(String(mid)); render(); });
+
+  /* ---------- Message node ---------- */
+  function linkify(parent, text) {
+    const re = /(https?:\/\/[^\s<>"']+)/g; let last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const a = el("a", "", m[1]); a.href = m[1]; a.target = "_blank"; a.rel = "noopener noreferrer";
+      parent.appendChild(a); last = m.index + m[1].length;
+    }
+    if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+  function fileCard(f) {
+    const risky = RISKY.test(f.name), c = el("div", "mx-file" + (risky ? " risky" : ""));
+    const d = el("div");
+    d.append(el("b", "", f.name), el("small", "", fsize(f.size) + " · Save file"));
+    c.append(ic(risky ? "alert" : f.img ? "image" : "file"), d); c.addEventListener("click", () => {
+      if (f.dataUrl) { const a = document.createElement("a"); a.href = f.dataUrl; a.download = f.name || "download"; a.click(); }
+      else saveFile(f);
+    }); return c;
+  }
+  function fileNode(f) {
+    if (f.img) {
+      const im = el("img", "mx-img"); im.alt = f.name; im.title = "View larger";
+      im.addEventListener("click", () => openLb(f));
+      if (f.dataUrl) { im.src = f.dataUrl; S.prev.set(f.id, f.dataUrl); }
+      else if (S.prev.has(f.id)) { const v = S.prev.get(f.id); if (v) im.src = v; else return fileCard(f); }
+      else api.previewFile(f.id).then((u) => { S.prev.set(f.id, u || ""); if (u) im.src = u; else render(); }).catch(() => { S.prev.set(f.id, ""); render(); });
+      const wrap = el("div", "mx-media-wrap"); wrap.appendChild(im);
+      const dl = btn("mx-media-download", null, "", "Download file", async (e) => { if (f.dataUrl) { const a = document.createElement("a"); a.href = f.dataUrl; a.download = f.name || "download"; a.click(); } else await saveFile(f); });
+      dl.appendChild(ic("download")); wrap.appendChild(dl); return wrap;
+    }
+    const card = fileCard(f); const dl = btn("mx-media-download", null, "", "Download file", async () => await saveFile(f)); dl.appendChild(ic("download")); card.appendChild(dl); card.style.position = "relative"; card.style.paddingRight = "48px"; return card;
+  }
+  function fbtn(icon, label, title, cls, fn, disabled) {
+    const b = btn("mx-fb" + (cls ? " " + cls : ""), null, label, title, fn); b.prepend(ic(icon, icon === "spin" ? "spin" : "")); b.disabled = !!disabled; return b;
+  }
+
+  function items() {
+    if (S.mode === "admin") {
+      return ((S.st && S.st.messages) || []).map((m, i) => ({
+        key: m.mid || m.id || "a" + i, mid: m.mid || m.id, scope: "admin", ts: m.ts, text: m.text || "", file: m.file,
+        sys: m.from === "announce", ann: true, mine: m.from === "me", name: "Support", from: m.from, state: m.status === "pending" ? "pending" : "sent"
+      }));
+    }
+    const g = curGroup(), adminHere = iAmAdmin(g);
+    const arr = S.mode === "group" ? gList(S.gid) : (S.peer ? dmList(S.peer) : []);
+    return arr.map((m, i) => {
+      if (m.sys) return { key: m.id, sys: true, ts: m.ts, text: m.text, from: "sys" };
+      const mine = isMine(m), from = String(m.from || m.fromId || m.userId || ""), id = m.id || m.mid;
+      return {
+        key: id || S.mode + i, mid: id, scope: S.mode, ts: m.ts || Date.now(), text: textOf(m), file: m.file, ref: m,
+        mine, from: mine ? "me" : from, fromId: from, local: !!m.local, state: m.state || "sent", err: m.err,
+        canDel: S.mode === "group" && adminHere && !mine,
+        name: mine ? "You" : (S.mode === "group" ? (m.name || nameOf(from) || "User-" + from.slice(-4)) : (m.fromName || "User-" + from.slice(-4)))
+      };
+    });
+  }
+
+  /* ---------- Render ---------- */
+  const TEXT = { connecting: "Connecting…", reconnecting: "Reconnecting…", offline: "Offline — trying to reconnect…", idle: "Getting ready…",
+    locked: "A valid license is required to use chat.", banned: "Chat access has been disabled for you.", disabled: "Chat is temporarily disabled." };
+  const CONN = { connected: "#22c55e", connecting: "#f59e0b", reconnecting: "#f59e0b" };
+
+  function setAvatar(kind, text) {
+    const a = $("mxAvTxt"); a.textContent = "";
+    if (kind) a.appendChild(ic(kind)); else a.textContent = text;
+  }
+
+  function render() {
+    const st = S.st || { conn: "connecting", messages: [] };
+    if (!S.uid && (st.uid || st.userId || st.id)) S.uid = String(st.uid || st.userId || st.id);   // Admin tools can be shown once the user ID is known
+    $("chatDot").style.background = CONN[st.conn] || "#94a3b8";
+    const g = curGroup();
+    modal.dataset.mode = S.mode; modal.dataset.gk = S.mode === "group" && g ? "custom" : "public";
+
+    let title = "Support", sub;
+    const connLine = st.conn === "connected" ? "" : (st.note || TEXT[st.conn] || "");
+    if (S.mode === "admin") { setAvatar("headset"); sub = connLine || (st.admin ? "Online" : "Offline — leave a message"); }
+    else if (S.mode === "group") {
+      if (g) { title = g.name; setAvatar(null, initial(g.name)); sub = connLine || (g.members.length + " members" + (iAmAdmin(g) ? " · You are admin" : "")); }
+      else { title = "Public Group"; setAvatar("globe"); sub = connLine || "Public group — everyone is here"; }
+    } else {
+      if (S.peer) { title = nameOf(S.peer); setAvatar(null, initial(nameOf(S.peer))); sub = connLine || "Only you and this person can see messages"; }
+      else { title = "Private Chat"; setAvatar("lock"); sub = connLine || "Chat privately with a friend or group member"; }
+    }
+    $("mxTitle").textContent = title; $("chatStatus").textContent = sub;
+    $("mxInfoBtn").hidden = S.mode !== "group";
+    $("mxMyId").textContent = S.uid || st.uid || st.userId || api.userId || "—";
+
+    const adminUnread = viewing() && S.mode === "admin" ? 0 : (st.unread || 0);
+    const total = adminUnread + ugTotal() + S.invites.length + S.unreadD;
+    const tb = $("chatTopBadge"); if (tb) { tb.style.display = total ? "" : "none"; tb.textContent = total > 99 ? "99+" : String(total); }
+    if (viewing() && S.mode === "admin" && st.unread) api.markRead();
+    const gOther = Object.entries(S.unreadGid).reduce((a, [k, v]) => a + (S.mode === "group" && k === S.gid ? 0 : v), 0);
+    const dots = { admin: adminUnread, group: gOther + S.invites.length, dm: S.unreadD };
+    document.querySelectorAll(".mx-tab").forEach((b) => {
+      const mode = b.dataset.mode, on = mode === S.mode, d = b.querySelector(".mx-dot");
+      b.classList.toggle("active", on); b.setAttribute("aria-selected", on ? "true" : "false");
+      const n = on && mode !== "group" ? 0 : dots[mode]; d.hidden = !n; d.textContent = n > 99 ? "99+" : String(n);
+    });
+    if (!S.open) return;
+
+    renderGroupBar(); renderInvites(); renderInfo();
+    $("mxCreate").hidden = !(S.mode === "group" && S.create);
+    $("mxPeer").hidden = S.mode !== "dm";
+    modal.dataset.directory = S.directory || "chat";
+    document.querySelectorAll("#chatModal .mx-dir-btn").forEach((b) => {
+      const on = b.dataset.directory === modal.dataset.directory;
+      b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (S.mode === "dm") { renderRecent(); renderFriendLists(); }
+    $("mxNotice").hidden = !S.notice; $("mxNotice").textContent = S.notice;
+
+    const ok = canSend();
+    const enabled = ok && (S.mode !== "dm" || !!S.peer);
+    input.disabled = !enabled; sendBtn.disabled = !enabled; $("mxEmojiBtn").disabled = !enabled;
+    input.placeholder = !ok ? (TEXT[st.conn] || "Chat unavailable") :
+      S.mode === "group" ? (g ? "Message the group…" : "Message everyone…") : S.mode === "dm" ? (S.peer ? "Write a private message…" : "Choose a person first") : "Type a message…";
+    attachBtn.disabled = !ok || S.working || !!st.upload || st.conn !== "connected" || (S.mode === "dm" && !S.peer);
+    attachBtn.title = S.mode === "admin" ? "Send image or PDF to Support" : S.mode === "group" ? "Share a file with this group" : "Share a file in this private chat";
+    const up = st.upload ? "⬆️ " + st.upload.name + " — " + st.upload.pct + "%" : "";
+    upT.textContent = S.local || up; upBox.hidden = !(S.local || up);
+    upB.className = st.upload ? "" : "ind"; upB.style.width = st.upload ? st.upload.pct + "%" : "";
+    if (document.activeElement !== $("chatName") && $("chatName").value !== (st.name || "")) $("chatName").value = st.name || "";
+
+    renderMessages();
+  }
+
+  /* Group selector */
+  function renderGroupBar() {
+    const bar = $("mxGroupBar"); bar.hidden = S.mode !== "group"; if (bar.hidden) return;
+    const box = $("mxGroups"); box.textContent = "";
+    const g = curGroup();
+    // Current group + dropdown trigger
+    const sel = el("button", "mx-gsel" + (S.gpanel ? " open" : "")); sel.type = "button"; sel.title = "Choose a group"; sel.setAttribute("aria-expanded", S.gpanel ? "true" : "false");
+    sel.append(ic(g ? (g.owner === S.uid ? "crown" : "users") : "globe"), el("span", "", g ? g.name : "Public Group"));
+    const other = Object.entries(S.unreadGid).reduce((a, [k, v]) => a + (k === S.gid ? 0 : v), 0);
+    if (other) sel.append(el("em", "", other > 99 ? "99+" : String(other)));
+    sel.append(ic("down", "car"));
+    sel.addEventListener("click", (e) => { e.stopPropagation(); S.gpanel = !S.gpanel; if (S.gpanel) { S.create = false; S.gq = ""; $("mxGSearch").value = ""; } render(); if (S.gpanel) setTimeout(() => $("mxGSearch").focus(), 30); });
+    const add = btn("mx-gc add" + (S.create ? " on" : ""), "plus", "New", "Create your own group", () => { S.create = !S.create; S.info = false; S.gpanel = false; render(); if (S.create) setTimeout(() => $("mxGName").focus(), 30); });
+    box.append(sel, add);
+    // Searchable list of all groups (Public + the groups I belong to)
+    const panel = $("mxGPanel"); panel.hidden = !S.gpanel; if (!S.gpanel) return;
+    const items = $("mxGItems"); items.textContent = "";
+    const q = (S.gq || "").trim().toLowerCase();
+    const all = [{ id: PUB, name: "Public Group", icon: "globe", sub: "Everyone" }]
+      .concat(S.groups.map((x) => ({ id: x.id, name: x.name, icon: x.owner === S.uid ? "crown" : "users", sub: x.members.length + " members" + (x.owner === S.uid ? " · Admin" : "") })));
+    const rows = all.filter((x) => !q || x.name.toLowerCase().includes(q));
+    rows.forEach((x) => {
+      const r = el("button", "mx-gi" + (S.gid === x.id ? " on" : "")); r.type = "button";
+      const av = el("span", "mx-gav"); av.append(ic(x.icon));
+      const t = el("span", "mx-gt"); t.append(el("b", "", x.name), el("small", "", x.sub));
+      r.append(av, t);
+      const n = S.unreadGid[x.id] || 0; if (n && S.gid !== x.id) r.append(el("em", "", n > 99 ? "99+" : String(n)));
+      r.addEventListener("click", (e) => { e.stopPropagation(); S.gpanel = false; switchGroup(x.id); });
+      items.appendChild(r);
+    });
+    if (!rows.length) items.appendChild(el("div", "mx-gempty", q ? "No group matches “" + S.gq.trim() + "”." : "No groups yet."));
+  }
+  $("mxGSearch").addEventListener("input", (e) => { S.gq = e.target.value; renderGroupBar(); });
+  $("mxGSearch").addEventListener("keydown", (e) => { if (e.key === "Escape") { S.gpanel = false; render(); } });
+  document.addEventListener("click", (e) => { if (S.gpanel && !e.target.closest("#mxGroupBar")) { S.gpanel = false; render(); } });
+
+  /* Invitation card */
+  function renderInvites() {
+    const box = $("mxInvites"); box.textContent = "";
+    box.hidden = S.mode !== "group" || !S.invites.length; if (box.hidden) return;
+    S.invites.forEach((inv) => {
+      const c = el("div", "mx-inv"), t = el("div", "mx-inv-t"), a = el("div", "mx-inv-a");
+      t.append(document.createTextNode((inv.fromName || inv.from) + " invited you to "), el("b", "", "\"" + inv.gname + "\""), document.createTextNode("."));
+      a.append(
+        btn("mx-btn sm", "check", "Join", "Accept invitation", () => { S.pendingJoin = inv.gid; S.invites = S.invites.filter((x) => x.gid !== inv.gid); sendProto({ t: "group_invite_accept", gid: inv.gid }); render(); }),
+        btn("mx-btn sm ghost", "x", "Decline", "Decline invitation", () => { S.invites = S.invites.filter((x) => x.gid !== inv.gid); sendProto({ t: "group_invite_decline", gid: inv.gid }); render(); })
+      );
+      c.append(t, a); box.appendChild(c);
+    });
+  }
+
+  /* Group info, members, and admin tools */
+  function renderInfo() {
+    const box = $("mxInfo"); box.hidden = !(S.mode === "group" && S.info); if (box.hidden) return;
+    const oldInp = $("mxInvId"), keepVal = oldInp ? oldInp.value : "", keepFocus = !!oldInp && document.activeElement === oldInp;   // Preserve typed text when new messages arrive
+    box.textContent = "";
+    const g = curGroup();
+    if (!g) {
+      const h = el("div", "mx-ph"); h.append(el("b", "", "Public Group"), el("span", "mx-role", "Public"));
+      box.append(h, el("small", "mx-hint", "This is a public group where anyone can post. To create your own group, click “New Group” above."));
+      return;
+    }
+    const admin = iAmAdmin(g);
+    const h = el("div", "mx-ph"); const role = el("span", "mx-role"); role.append(ic(admin ? "crown" : "users"), document.createTextNode(admin ? "You are admin" : "Member"));
+    h.append(el("b", "", g.name), role); box.appendChild(h);
+
+    if (admin) {
+      box.appendChild(el("div", "mx-sec", "Invite members"));
+      const row = el("div", "mx-row"), inp = el("input", "mx-in"); inp.id = "mxInvId"; inp.placeholder = "User ID"; inp.maxLength = 128; inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("list", "mxInvList");
+      const dl = document.createElement("datalist"); dl.id = "mxInvList";
+      S.users.filter((u) => u.id !== S.uid && !g.members.some((m) => m.id === u.id)).slice(0, 80).forEach((u) => { const o = document.createElement("option"); o.value = u.id; o.label = u.name || u.id; dl.appendChild(o); });
+      const go = () => { const id = inp.value.trim(); if (!/^[A-Za-z0-9_-]{6,128}$/.test(id)) { S.notice = "Enter a valid user ID."; render(); return; } sendProto({ t: "group_invite", gid: g.id, to: id }); inp.value = ""; };
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+      row.append(inp, dl, btn("mx-btn", "userplus", "Invite", "Send invitation", go)); box.appendChild(row);
+    }
+
+    box.appendChild(el("div", "mx-sec", "Member (" + g.members.length + ")"));
+    g.members.slice().sort((a, b) => (b.id === g.owner) - (a.id === g.owner) || String(a.name).localeCompare(String(b.name))).forEach((mb) => {
+      const me = mb.id === S.uid, r = el("div", "mx-mem"), av = el("div", "mx-mav", initial(mb.name)); av.style.background = colorOf(mb.id);
+      av.appendChild(el("i", mb.online ? "on" : ""));
+      const nm = el("div", "mx-mn"), b = el("b"); b.append(document.createTextNode((mb.name || mb.id) + (me ? " (You)" : ""))); if (mb.id === g.owner) { b.append(ic("crown")); b.title = "Group admin"; }
+      nm.append(b, el("small", "", mb.id));
+      const act = el("div", "mx-ma");
+      if (!me) act.append(btn("mx-mini", "msg", "", "Private message", () => openDmWith(mb.id)));
+      if (admin && !me) act.append(btn("mx-mini bad", "userx", "", "Remove from group", async () => { if (await confirmBox("Remove this member?", (mb.name || mb.id) + " will be removed from \"" + g.name + "\".", "Remove")) sendProto({ t: "group_kick", gid: g.id, uid: mb.id }); }));
+      r.append(av, nm, act); box.appendChild(r);
+    });
+
+    const foot = el("div", "mx-foot2");
+    if (admin) foot.append(btn("mx-btn dsoft sm", "trash", "Delete group", "Permanently delete group", async () => { if (await confirmBox("Delete this group?", "\"" + g.name + "\" and all its messages will be deleted for everyone.", "Delete")) sendProto({ t: "group_disband", gid: g.id }); }));
+    else foot.append(btn("mx-btn dsoft sm", "logout", "Leave group", "Leave group", async () => { if (await confirmBox("Leave this group?", "\"" + g.name + "\" will be left. You will need a new invitation to rejoin.", "Leave group")) sendProto({ t: "group_leave", gid: g.id }); }));
+    box.appendChild(foot);
+    const ni = $("mxInvId"); if (ni) { ni.value = keepVal; if (keepFocus) ni.focus(); }
+  }
+
+  function renderRecent() {
+    const box = $("mxRecent"); box.textContent = "";
+    const ids = Array.from(new Set([...recents(), ...Object.keys(S.dm)])).slice(0, 8);
+    ids.forEach((id) => {
+      const c = el("div", "mx-chip" + (id === S.peer ? " on" : "")); c.title = id;
+      c.append(el("span", "", nameOf(id)));
+      if (S.unreadPeer[id] && id !== S.peer) c.append(el("em", "", String(S.unreadPeer[id])));
+      const x = el("b", "", "✕"); x.title = "Remove from list";
+      x.addEventListener("click", (e) => { e.stopPropagation(); forgetRecent(id); delete S.dm[id]; if (S.peer === id) S.peer = ""; render(); });
+      c.append(x); c.addEventListener("click", () => { $("dmPeerId").value = id; openDm(); });
+      box.appendChild(c);
+    });
+  }
+
+  function userRow(name, id, label, icon, cls, fn) {
+    const r = el("div", "mx-urow"), av = el("div", "mx-mav", initial(name)); av.style.background = colorOf(id);
+    const nm = el("div", "mx-mn"); nm.append(el("b", "", name || id), el("small", "", id));
+    r.append(av, nm, btn("mx-btn sm " + cls, icon, label, label, fn)); return r;
+  }
+  function renderFriendLists() {
+    const reqBox = $("mxFriendRequests"), userBox = $("mxUsers"); if (!reqBox || !userBox) return;
+    reqBox.textContent = ""; userBox.textContent = "";
+    const requests = S.requests || [], users = (S.users || []).filter((u) => u.id !== S.uid).slice(0, 50);
+    const reqCount = $("mxRequestsCount"), userCount = $("mxUsersCount");
+    if (reqCount) reqCount.textContent = String(requests.length);
+    if (userCount) userCount.textContent = String(users.length);
+    const reqTitle = el("div", "mx-directory-heading"); reqTitle.append(el("b", "", "Friend Requests"), el("span", "", requests.length + " pending")); reqBox.appendChild(reqTitle);
+    if (!requests.length) reqBox.appendChild(el("div", "mx-list-empty", "No pending friend requests."));
+    requests.forEach((r) => reqBox.append(userRow(String(r.name || r.from), r.from, "Accept", "check", "", () => sendProto({ t: "friend_accept", peerId: r.from }))));
+    const userTitle = el("div", "mx-directory-heading"); userTitle.append(el("b", "", "All Users"), el("span", "", users.length + " available")); userBox.appendChild(userTitle);
+    if (!users.length) userBox.appendChild(el("div", "mx-list-empty", "No other users are available yet."));
+    users.forEach((u) => {
+      const canChat = S.friends.includes(u.id) || sharesGroupWith(u.id);
+      userBox.append(canChat ? userRow(u.name || u.id, u.id, "Chat", "msg", "soft", () => { $("dmPeerId").value = u.id; openDm(); })
+        : userRow(u.name || u.id, u.id, "Add", "userplus", "ghost", () => sendProto({ t: "friend_request", to: u.id })));
+    });
+  }
+
+  function selectedItem() { return items().find(x => x.key === S.selected) || null; }
+  function updateSelectionBar() {
+    // Actions are shown only in the small per-message context menu, never in a full-width selection bar.
+    const bar = $("mxSelectBar");
+    if (bar) bar.hidden = true;
+  }
+  function hideMessageContext() { $("mxContextMenu").hidden = true; S.contextItem = null; }
+  function showMessageContext(it, x, y) {
+    S.selected = it.key; S.contextItem = it;
+    const menu = $("mxContextMenu"); menu.hidden = false;
+    $("mxContextDelete").hidden = !(it.mine || it.canDel || it.local);
+    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 165)) + "px";
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 95)) + "px";
+    updateSelectionBar();
+  }
+  $("mxDeleteSelected").addEventListener("click", async () => { const it = selectedItem(); hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) { await deleteItem(it); S.selected = null; updateSelectionBar(); } });
+  $("mxCancelSelect").addEventListener("click", () => { S.selected = null; hideMessageContext(); renderMessages(); });
+  $("mxContextCopy").addEventListener("click", async () => { const it = S.contextItem || selectedItem(); hideMessageContext(); if (!it) return; try { await navigator.clipboard.writeText(it.text || (it.file && it.file.name) || ""); toast("Copied"); } catch (_) { toast("Could not copy"); } });
+  $("mxContextDelete").addEventListener("click", async () => { const it = S.contextItem || selectedItem(); hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) { await deleteItem(it); S.selected = null; updateSelectionBar(); } });
+  document.addEventListener("click", e => { if (!e.target.closest("#mxContextMenu")) hideMessageContext(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { hideMessageContext(); S.selected = null; updateSelectionBar(); } });
+
+  function renderMessages() {
+    const near = list.scrollHeight - list.scrollTop - list.clientHeight < 70;
+    const prevH = list.scrollHeight;
+    list.textContent = "";
+    const msgs = items();
+    if (!msgs.length) {
+      const g = curGroup();
+      const msg = S.mode === "admin" ? "No messages yet.\nSend us your question or describe your issue."
+        : S.mode === "group" ? (g ? "\"" + g.name + "\" has no messages yet.\nBe the first to send a message." : "The public group has no messages yet.\nYour message will be visible to everyone.")
+        : S.peer ? "No messages in this chat yet.\nBe the first to send a message." : "Enter a user ID or choose\nsomeone from the list.";
+      const e = el("div", "mx-empty", msg); e.prepend(ic(S.mode === "dm" ? "lock" : S.mode === "group" ? (g ? "users" : "globe") : "msg")); list.appendChild(e);
+    }
+    const grp = (a, b) => a && b && !a.sys && !b.sys && a.from === b.from && sameDay(a.ts, b.ts) && b.ts - a.ts < 3e5;
+    msgs.forEach((it, i) => {
+      const p = msgs[i - 1], n = msgs[i + 1];
+      if (!p || !sameDay(p.ts, it.ts)) list.appendChild(el("div", "mx-day", dayLabel(it.ts)));
+      if (it.sys) { list.appendChild(el("div", "mx-sys", (it.ann ? "📢 " : "") + it.text)); return; }
+      const first = !grp(p, it), last = !grp(it, n);
+      const row = el("div", "mx-m " + (it.mine ? "me" : "other") + (first ? " first" : "") + (last ? " last" : "") + (S.selected === it.key ? " selected" : ""));
+      row.tabIndex = 0; row.setAttribute("aria-label", "Message. Click or tap for Copy and Delete actions; right-click for actions.");
+      row.addEventListener("click", e => { if (e.target.closest("a,button")) return; e.stopPropagation(); showMessageContext(it, e.clientX || 16, e.clientY || 16); });
+      row.addEventListener("contextmenu", e => { e.preventDefault(); showMessageContext(it, e.clientX, e.clientY); });
+      if (!it.mine && S.mode === "group") {
+        const dmable = !!curGroup() && it.fromId;
+        const pic = el("div", "mx-pic" + (last ? "" : " ph") + (dmable && last ? " link" : ""), initial(it.name)); pic.style.background = colorOf(it.from);
+        if (dmable && last) { pic.title = "Send private message"; pic.addEventListener("click", () => openDmWith(it.fromId)); }
+        row.appendChild(pic);
+      }
+      const col = el("div", "mx-col");
+      if (!it.mine && first && S.mode === "group") { const nm = el("div", "mx-nm", it.name); nm.style.color = colorOf(it.from); col.appendChild(nm); }
+      const showTxt = it.text && !(it.file && it.text === "📎 " + it.file.name);
+      const b = el("div", "mx-b");
+      if (it.file) b.appendChild(fileNode(it.file));
+      if (showTxt) { const t = el("div", "mx-t"); linkify(t, it.text); b.appendChild(t); }
+
+      const foot = el("div", "mx-foot");
+      const mark = !it.mine ? "" : it.state === "pending" ? "  ⏳" : it.state === "failed" ? "  ⚠️" : "  ✓";
+      const tm = el("span", "mx-time", fmt(it.ts) + mark); if (it.state === "failed") tm.title = it.err || "Could not send"; foot.appendChild(tm);
+      if (it.state === "failed" && it.local) foot.appendChild(fbtn("retry", "Retry", "Send again", "retry", () => retry(it)));
+      b.appendChild(foot);
+      col.appendChild(b); row.appendChild(col); list.appendChild(row);
+    });
+    if (near) { list.scrollTop = list.scrollHeight; S.newBelow = 0; }
+    else if (list.scrollHeight > prevH) S.newBelow++;
+    updateDown(); updateSelectionBar();
+  }
+  function updateDown() {
+    const far = list.scrollHeight - list.scrollTop - list.clientHeight > 120;
+    $("mxDown").hidden = !far;
+    $("mxDownN").hidden = !(far && S.newBelow); $("mxDownN").textContent = S.newBelow;
+  }
+  list.addEventListener("scroll", () => { if (list.scrollHeight - list.scrollTop - list.clientHeight < 70) S.newBelow = 0; updateDown(); });
+  $("mxDown").addEventListener("click", () => { list.scrollTo({ top: list.scrollHeight, behavior: "smooth" }); S.newBelow = 0; });
+  $("mxNotice").addEventListener("click", () => { S.notice = ""; render(); });
+
+  /* ---------- Modes, groups, opening, and sending ---------- */
+  function loadGroup(gid) { if (protoOK()) { sendProto({ t: "groups_list" }); sendProto({ t: "group_open", gid }); } }
+  function switchGroup(gid, keepInfo) {
+    S.gid = gid; S.create = false; if (!keepInfo) S.info = false; S.notice = ""; S.newBelow = 0; S.unreadGid[gid] = 0;
+    loadGroup(gid); render(); list.scrollTop = list.scrollHeight; if (!input.disabled) setTimeout(() => input.focus(), 40);
+  }
+  function setMode(mode) {
+    S.mode = mode; S.gpanel = false; S.notice = ""; S.newBelow = 0; S.create = false; $("mxEmoji").hidden = true;
+    if (mode !== "admin" && !protoOK()) S.notice = "To enable group/private chat, preload must expose chatAPI.sendProtocol() and onProtocolMessage().";
+    if (mode === "group") { S.unreadGid[S.gid] = 0; loadGroup(S.gid); }
+    if (mode === "dm") { if (protoOK()) sendProto({ t: "users_list" }); if (S.peer) { S.unreadD -= S.unreadPeer[S.peer] || 0; S.unreadPeer[S.peer] = 0; if (S.unreadD < 0) S.unreadD = 0; } else setTimeout(() => $("dmPeerId").focus(), 50); }
+    if (mode === "admin" && S.st && S.st.unread) api.markRead();
+    render(); list.scrollTop = list.scrollHeight;
+    if (!input.disabled) setTimeout(() => input.focus(), 40);
+  }
+  document.querySelectorAll("#chatModal .mx-dir-btn").forEach((b) => b.addEventListener("click", () => {
+    S.directory = b.dataset.directory || "chat"; modal.dataset.directory = S.directory;
+    render();
+    if (S.directory === "users") { const x = $("mxUsers"); if (x) x.scrollTop = 0; }
+    if (S.directory === "requests") { const x = $("mxFriendRequests"); if (x) x.scrollTop = 0; }
+  }));
+  $("dmFriendReq")?.addEventListener("click", () => { const peer = String($("dmPeerId").value || "").trim(); if (peer) sendProto({ t: "friend_request", to: peer }); else { S.notice = "Enter a user ID first."; render(); } });
+  $("dmRefreshUsers")?.addEventListener("click", () => sendProto({ t: "users_list" }));
+  function openDm() {
+    const peer = String($("dmPeerId").value || "").trim();
+    if (!/^[A-Za-z0-9_-]{6,128}$/.test(peer)) { S.notice = "Enter a valid user ID (6–128 characters: letters, numbers, - or _)."; render(); return; }
+    if (S.uid && peer === S.uid) { S.notice = "You cannot start a private chat with your own ID."; render(); return; }
+    S.peer = peer; S.directory = "chat"; modal.dataset.directory = "chat"; S.notice = ""; S.unreadPeer[peer] = 0; saveRecent(peer); dmList(peer);
+    S.unreadD = Object.values(S.unreadPeer).reduce((a, b) => a + b, 0);
+    if (protoOK()) sendProto({ t: "dm_open", peerId: peer });
+    $("dmPeerId").value = ""; render(); list.scrollTop = list.scrollHeight; setTimeout(() => input.focus(), 40);
+  }
+  /* Open a private chat with a group member */
+  function openDmWith(id) {
+    if (!id || id === S.uid) return;
+    S.info = false; setMode("dm"); $("dmPeerId").value = id; openDm();
+  }
+  function setArrow(min) { $("chatArrow").firstElementChild.setAttribute("href", min ? "#mxi-plus" : "#mxi-minus"); }
+  function setOpen(v) {
+    S.open = v;
+    if (v) {
+      showSidebar();
+      try { window.electronAPI?.setChatOverlayOpen?.(true); } catch (_) {}
+      S.min = false; modal.style.display = "flex"; modal.classList.remove("minimized"); setArrow(false);
+      if (S.mode === "group") { S.unreadGid[S.gid] = 0; loadGroup(S.gid); }
+      render(); list.scrollTop = list.scrollHeight; if (S.st && S.st.unread && S.mode === "admin") api.markRead(); setTimeout(() => input.focus(), 60);
+    } else { try { window.electronAPI?.setChatOverlayOpen?.(false); } catch (_) {} modal.style.display = "none"; closeLb(); if (confCancel) confCancel(); restoreSidebar(); render(); }
+  }
+  try { window.electronAPI?.onChatWindowReopen?.(() => setOpen(true)); } catch (_) {}
+  function setMin(v) {
+    S.min = v; modal.classList.toggle("minimized", v); setArrow(v);
+    if (!v) { if (S.mode === "group") S.unreadGid[S.gid] = 0; render(); list.scrollTop = list.scrollHeight; setTimeout(() => input.focus(), 60); }
+    else render();
+  }
+  const grow = () => { input.style.height = "32px"; input.style.height = Math.min(84, Math.max(32, input.scrollHeight)) + "px"; };
+
+  async function sendText(t, retryItem) {
+    const inGroup = S.mode === "group";
+    const arr = inGroup ? gList(S.gid) : dmList(S.peer);
+    const packet = inGroup ? { t: "group_msg", gid: S.gid, text: t } : { t: "dm_msg", peerId: S.peer, text: t };
+    let item = retryItem;
+    if (!item) { item = { id: "L" + (++S.seq), local: true, mine: true, from: S.uid || "me", text: t, ts: Date.now(), state: "pending" }; }
+    else { item.state = "pending"; item.err = ""; item.ts = Date.now(); }
+    if (!arr.includes(item)) arr.push(item);
+    render(); list.scrollTop = list.scrollHeight;
+    const r = await sendProto(packet);
+    if (r && r.ok === false) { item.state = "failed"; item.err = r.error || "Could not send"; if (!protoOK()) S.notice = "Could not send message: sendProtocol bridge is missing from preload."; render(); return; }
+    setTimeout(() => {
+      if (item.local && item.state === "pending") {
+        item.state = "sent";
+        if (!S.seen) S.notice = "No response from server — check the preload/main bridge and server connection.";
+        render();
+      }
+    }, 8000);
+  }
+  function retry(it) { if (it.ref) sendText(it.ref.text, it.ref); }
+
+  async function doSend() {
+    const t = input.value.trim();
+    if (!t || !canSend()) return;
+    $("mxEmoji").hidden = true;
+    if (S.mode !== "admin") {
+      if (S.mode === "dm" && !S.peer) { S.notice = "Choose someone first to open a private chat."; render(); return; }
+      input.value = ""; grow(); sendText(t); return;
+    }
+    input.value = ""; grow();
+    const r = await api.send(t);
+    if (r && r.ok === false) { flash("⚠️ " + (r.error || "Could not send")); input.value = t; grow(); }
+    list.scrollTop = list.scrollHeight;
+  }
+
+  EMOJIS.forEach((e) => { const b = el("button", "", e); b.type = "button"; b.addEventListener("click", () => {
+    const s = input.selectionStart ?? input.value.length, en = input.selectionEnd ?? s;
+    input.value = input.value.slice(0, s) + e + input.value.slice(en); input.focus(); input.selectionStart = input.selectionEnd = s + e.length; grow();
+  }); $("mxEmoji").appendChild(b); });
+  $("mxEmojiBtn").addEventListener("click", () => { $("mxEmoji").hidden = !$("mxEmoji").hidden; });
+
+  // -------- WebRTC voice call (Node.js WebSocket signalling; no Firestore call records) --------
+  const callBtn = $("mxCallBtn"), callPanel = $("mxCallPanel"), callTitle = $("mxCallTitle"), callText = $("mxCallText"),
+        callAccept = $("mxCallAccept"), callEnd = $("mxCallEnd"), callMute = $("mxCallMute"), callAudio = $("mxCallRemoteAudio");
+  const callState = { pc:null, stream:null, id:"", phase:"idle", incoming:false, muted:false, pendingIce:[] };
+  const callSend = (action, extra={}) => sendProto({t:"call_signal", action, callId:callState.id, ...extra});
+  function callUi(phase, incoming=false) {
+    callState.phase=phase; callState.incoming=incoming; callPanel.hidden=phase==="idle";
+    callAccept.hidden=!(phase==="ringing" && incoming); callMute.hidden=!(phase==="active");
+    callBtn.disabled=phase!=="idle"; callText.textContent=({ringing:incoming?"ইনকামিং ভয়েস কল এসেছে।":"কল করা হচ্ছে…",connecting:"সংযোগ তৈরি হচ্ছে…",active:"কল সংযুক্ত।",ending:"কল শেষ হচ্ছে…"})[phase]||"";
+    callTitle.textContent=incoming?"ইনকামিং ভয়েস কল":"সাপোর্ট ভয়েস কল";
+  }
+  function explainCallError(e) {
+    const n = String(e?.name || "");
+    const m = String(e?.message || "");
+    if (n === "NotFoundError" || n === "DevicesNotFoundError" || /requested device not found|device.*not found/i.test(m))
+      return "মাইক্রোফোন পাওয়া যায়নি। ডিভাইসে মাইক্রোফোন সংযুক্ত/সক্রিয় করুন এবং Windows-এর Microphone permission চালু করে আবার চেষ্টা করুন।";
+    if (n === "NotAllowedError" || n === "PermissionDeniedError" || /permission denied|not allowed/i.test(m))
+      return "মাইক্রোফোন ব্যবহারের অনুমতি বন্ধ আছে। ব্রাউজার/অ্যাপের Microphone permission Allow করে আবার চেষ্টা করুন।";
+    if (n === "NotReadableError" || n === "TrackStartError")
+      return "মাইক্রোফোন অন্য অ্যাপ ব্যবহার করছে বা ডিভাইসটি ব্যস্ত। অন্য অ্যাপ বন্ধ করে আবার চেষ্টা করুন।";
+    if (n === "OverconstrainedError" || n === "ConstraintNotSatisfiedError")
+      return "মাইক্রোফোনের অডিও সেটিংস সমর্থিত নয়। সাধারণ অডিও মোডে আবার চেষ্টা করুন।";
+    return m || "মাইক্রোফোন পরীক্ষা করে আবার চেষ্টা করুন।";
+  }
+  async function ensurePeer() {
+    if (callState.pc) return callState.pc;
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error("এই অ্যাপ/পেজে মাইক্রোফোন API পাওয়া যায়নি। HTTPS অথবা localhost থেকে খুলুন।");
+    // প্রথমে উন্নত noise-cancellation constraints; ব্যর্থ হলে সাধারণ audio:true দিয়ে retry।
+    try {
+      callState.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
+        video:false
+      });
+    } catch (firstError) {
+      if (["NotFoundError","DevicesNotFoundError","NotAllowedError","PermissionDeniedError","NotReadableError","TrackStartError"].includes(String(firstError?.name || ""))) {
+        throw new Error(explainCallError(firstError));
+      }
+      try {
+        callState.stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+      } catch (secondError) {
+        throw new Error(explainCallError(secondError || firstError));
+      }
+    }
+    const pc=callState.pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]});
+    callState.stream.getTracks().forEach(t=>pc.addTrack(t,callState.stream));
+    pc.ontrack=e=>{callAudio.srcObject=e.streams[0]; callAudio.play().catch(()=>{});};
+    pc.onicecandidate=e=>{if(e.candidate && callState.id) callSend("ice",{candidate:e.candidate.toJSON()});};
+    pc.onconnectionstatechange=()=>{if(pc.connectionState==="connected")callUi("active",false); else if(["failed","disconnected"].includes(pc.connectionState)&&callState.phase!=="idle")callText.textContent="নেটওয়ার্ক সংযোগ দুর্বল বা বিচ্ছিন্ন।";};
+    return pc;
+  }
+  async function startVoiceCall(){
+    if(S.mode!=="admin"){toast("সাপোর্ট ট্যাব থেকে কল করুন");return;}
+    if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){toast("এই WebView-তে ভয়েস কল সমর্থিত নয়");return;}
+    if(callState.phase!=="idle")return;
+    callState.id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)); callUi("connecting",false);
+    try{const pc=await ensurePeer();const offer=await pc.createOffer();await pc.setLocalDescription(offer);const r=await callSend("offer",{description:pc.localDescription.toJSON()});if(r?.ok===false)throw Error(r.error||"সার্ভারে কল পাঠানো যায়নি");callUi("ringing",false);}
+    catch(e){toast("কল শুরু করা যায়নি: "+explainCallError(e));resetCall(false);}
+  }
+  async function acceptVoiceCall(){try{const pc=await ensurePeer();const pending=callState.pendingOffer;if(!pending)throw Error("কল অফার পাওয়া যায়নি");await pc.setRemoteDescription(pending);for(const c of callState.pendingIce.splice(0)){try{await pc.addIceCandidate(c)}catch(_){}}const answer=await pc.createAnswer();await pc.setLocalDescription(answer);const r=await callSend("answer",{description:pc.localDescription.toJSON()});if(r?.ok===false)throw Error(r.error||"উত্তর পাঠানো যায়নি");callUi("connecting",false);}catch(e){toast("কল গ্রহণ করা যায়নি: "+explainCallError(e));resetCall(true,"reject");}}
+  function resetCall(notifyPeer=false, action="end") { if(notifyPeer&&callState.id)callSend(action,{reason:action});try{callState.pc?.close()}catch(_){};try{callState.stream?.getTracks().forEach(t=>t.stop())}catch(_){};callState.pc=null;callState.stream=null;callState.id="";callState.phase="idle";callState.incoming=false;callState.pendingOffer=null;callState.pendingIce=[];callState.muted=false;callAudio.srcObject=null;callPanel.hidden=true;callBtn.disabled=false; }
+  callBtn?.addEventListener("click",startVoiceCall); callAccept?.addEventListener("click",acceptVoiceCall); callEnd?.addEventListener("click",()=>resetCall(true,"end"));
+  callMute?.addEventListener("click",()=>{callState.muted=!callState.muted;callState.stream?.getAudioTracks().forEach(t=>t.enabled=!callState.muted);callMute.textContent=callState.muted?"Unmute":"Mute";});
+  function onCallSignal(m){if(!m||m.t!=="call_signal")return; (async()=>{
+    if(m.action==="offer") { if(callState.phase!=="idle"){callSend("reject",{reason:"busy"});return;} callState.id=String(m.callId||"");callState.pendingOffer=m.description;callUi("ringing",true);return; }
+    if(!callState.id||String(m.callId)!==callState.id)return;
+    try{if(m.action==="answer"&&m.description){await callState.pc?.setRemoteDescription(m.description);callUi("connecting",false);}else if(m.action==="ice"&&m.candidate){if(callState.pc?.remoteDescription)await callState.pc.addIceCandidate(m.candidate);else callState.pendingIce.push(m.candidate);}else if(["reject","end"].includes(m.action)){toast(m.action==="reject"?"অপর পক্ষ কল গ্রহণ করেননি":"কল শেষ হয়েছে");resetCall(false);}}catch(e){toast("কল সংযোগে সমস্যা হয়েছে");resetCall(false);}
+  })(); }
+  if(protoOK()) { try { api.onProtocolMessage(onCallSignal); } catch(_){} }
+
+
+
+  $("mxHead").addEventListener("click", (e) => { if (e.target.closest("button")) return; if (S.open) setMin(!S.min); });
+  $("chatMinBtn").addEventListener("click", (e) => { e.stopPropagation(); if (S.open) setMin(!S.min); });
+  $("chatCloseBtn").addEventListener("click", (e) => { e.stopPropagation(); setOpen(false); });
+  $("mxInfoBtn").addEventListener("click", (e) => { e.stopPropagation(); S.info = !S.info; S.create = false; if (S.info && protoOK()) { sendProto({ t: "groups_list" }); sendProto({ t: "users_list" }); } render(); });
+  $("chatNameBtn").addEventListener("click", (e) => { e.stopPropagation(); const b = $("mxProfile"); b.hidden = !b.hidden; if (!b.hidden) { $("chatName").value = String((S.st && S.st.username) || "User").replace(/[^A-Za-z0-9._-]/g, ""); $("chatName").focus(); $("chatName").select(); } });
+  $("mxCopyId").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mxMyId").textContent); toast("ID copied"); } catch (_) { toast("Could not copy"); } });
+  $("mxPairCreate")?.addEventListener("click", () => { $("mxPairResult").hidden = true; sendProto({ t: "pair_create" }).then(r => { if (r && r.ok === false) toast("Could not create code: " + r.error); }); });
+  $("mxPairCopy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mxPairCode").textContent); toast("Pairing code copied"); } catch (_) { toast("Select and copy the code manually"); } });
+  sendBtn.addEventListener("click", doSend);
+  input.addEventListener("input", grow);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); } });
+  async function saveChatName() {
+    const inputName = $("chatName").value.trim();
+    if (!/^[A-Za-z0-9._-]{1,24}$/.test(inputName)) { toast("Username may contain English letters, numbers, . _ and - only"); return; }
+    const result = await api.setName(inputName);
+    if (result && result.ok === false) toast(result.error || "Username save failed");
+    else { $("chatName").value = (result && result.username) || inputName; toast("Username saved"); }
+  }
+  $("chatNameSave").addEventListener("click", saveChatName);
+  $("chatName").addEventListener("keydown", (e) => { if (e.key === "Enter") saveChatName(); });
+  document.querySelectorAll(".mx-tab").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("dmOpenBtn").addEventListener("click", openDm);
+  $("dmPeerId").addEventListener("keydown", (e) => { if (e.key === "Enter") openDm(); });
+
+  /* Create a new group */
+  function createGroup() {
+    const name = $("mxGName").value.replace(/\s+/g, " ").trim();
+    if (!name) { S.notice = "Please enter a group name."; render(); $("mxGName").focus(); return; }
+    sendProto({ t: "group_create", name }).then((r) => { if (r && r.ok === false) { S.notice = "Could not create group: " + (r.error === "offline" ? "Not connected to the server." : r.error); render(); } });
+    $("mxGName").value = "";
+  }
+  $("mxGCreate").addEventListener("click", createGroup);
+  $("mxGName").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) createGroup(); });
+  $("mxGCancel").addEventListener("click", () => { S.create = false; render(); });
+  $("btnChat")?.addEventListener("click", () => { if (!S.open) setOpen(true); else if (S.min) setMin(false); });
+    // আলাদা Electron chat window চালু হলে মোডালটি সঙ্গে সঙ্গে দেখান।
+    setOpen(true); // Open immediately; no dependency on #open hash.
+
+  if (protoOK()) { try { api.onProtocolMessage(onProto); } catch (_) {} }
+  api.onState((s) => { S.st = s; if (s && (s.uid || s.userId || s.id) && !S.uid) S.uid = String(s.uid || s.userId || s.id); render(); });
+  api.get().then((s) => { if (s && s.messages) { S.st = s; render(); } }).catch(() => {});
+})();
+</script>
+
+
+<style id="mx-directory-fit-fix">
+/* Make Users and Requests fill exactly the conversation area instead of leaving blank space. */
+#chatModal[data-mode="dm"] #mxPeer {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+#chatModal[data-mode="dm"][data-directory="users"] #mxUsers,
+#chatModal[data-mode="dm"][data-directory="requests"] #mxFriendRequests {
+  display: block !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  padding-bottom: 5px;
+}
+#chatModal #mxUsers { max-height: none !important; }
+#chatModal[data-mode="dm"][data-directory="users"] #mxPeer .mx-peer-hint,
+#chatModal[data-mode="dm"][data-directory="requests"] #mxPeer .mx-peer-hint {
+  flex: none;
+}
+#chatModal[data-mode="dm"][data-directory="users"] #mxRecent,
+#chatModal[data-mode="dm"][data-directory="requests"] #mxRecent { display: none !important; }
+#chatModal[data-mode="dm"][data-directory="users"] #mxListWrap,
+#chatModal[data-mode="dm"][data-directory="requests"] #mxListWrap,
+#chatModal[data-mode="dm"][data-directory="users"] #chatBar,
+#chatModal[data-mode="dm"][data-directory="requests"] #chatBar { display: none !important; }
+#chatModal .mx-directory-content { scrollbar-width: thin; scrollbar-color: #b8cce5 transparent; }
+#chatModal .mx-directory-content::-webkit-scrollbar { width: 6px; }
+#chatModal .mx-directory-content::-webkit-scrollbar-thumb { background: #b8cce5; border-radius: 8px; }
+</style>
+
+
+<style id="mx-group-list">
+#chatModal #mxGroups{display:flex;align-items:center;gap:6px;overflow:visible;padding:1px 9px 8px}
+#chatModal .mx-gsel{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:32px;min-height:0;padding:0 10px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+#chatModal .mx-gsel:hover,#chatModal .mx-gsel.open{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--acr),.12)}
+#chatModal .mx-gsel .ic{font-size:14px;color:var(--ac)}
+#chatModal .mx-gsel span{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chatModal .mx-gsel .car{margin-left:auto;color:var(--mute);transition:transform .15s}
+#chatModal .mx-gsel.open .car{transform:rotate(180deg)}
+#chatModal .mx-gsel em,#chatModal .mx-gi em{min-width:15px;height:15px;border-radius:8px;background:#ef4444;color:#fff;font-size:9px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px}
+#chatModal #mxGroups .mx-gc{height:32px;border-radius:10px;padding:0 12px}
+#chatModal #mxGPanel{margin:0 9px 8px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(18,24,48,.12);overflow:hidden}
+#chatModal .mx-gsearch{display:flex;align-items:center;gap:7px;padding:0 10px;border-bottom:1px solid var(--line);background:#f6f7fb}
+#chatModal .mx-gsearch .ic{font-size:14px;color:var(--mute)}
+#chatModal .mx-gsearch input{flex:1;min-width:0;height:32px;border:0;outline:0;background:transparent;font-size:12px;color:var(--ink)}
+#chatModal #mxGItems{max-height:176px;overflow-y:auto;scrollbar-width:thin}
+#chatModal .mx-gi{width:100%;display:flex;align-items:center;gap:9px;padding:7px 10px;border:0;background:#fff;cursor:pointer;text-align:left;color:var(--ink);transition:background .12s}
+#chatModal .mx-gi:hover{background:#f6f7fb}
+#chatModal .mx-gi.on{background:var(--acs)}
+#chatModal .mx-gav{width:28px;height:28px;border-radius:50%;background:var(--acs);color:var(--act);display:grid;place-items:center;flex:none;font-size:14px}
+#chatModal .mx-gt{flex:1;min-width:0}
+#chatModal .mx-gt b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chatModal .mx-gt small{display:block;font-size:10px;color:var(--mute)}
+#chatModal .mx-gempty{padding:14px 10px;text-align:center;font-size:11px;color:var(--mute)}
+</style>
+</body>
+</html>
