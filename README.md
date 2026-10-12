@@ -49,3 +49,12 @@ Build: GitHub Actions → Build Android APK → Run workflow. Output is a debug 
 - The sign-in pairing screen remains because the existing backend authentication protocol requires Machine ID + one-time pairing code for a new login. A saved session can resume without entering a new code when Stay logged in is enabled.
 - Added a modern green/teal mobile-first visual layer while keeping the existing chat UI and message interaction handlers in place.
 - Backend must include the account username in the `welcome` response (for example `username` or `displayName`) for the server-authoritative name to show accurately. If the backend omits it, the client can only show the fallback label.
+
+## V6 messenger-parity additions (client-side only)
+- Reply (context menu or swipe right on a message), Forward and Star (starred list is stored locally on the device).
+- Replies/forwards are encoded as plain text prefixes, so the existing server protocol is unchanged; other clients see them as plain text.
+- NOT possible without server.js changes: typing indicator, read receipts (blue ticks), reactions, edit message, last seen/online status, voice messages, video calls, background push. See the reply notes for the protocol additions needed.
+
+## V7 (needs the patched server.js)
+- Typing indicator (DM + groups), delivered (✓✓ grey) and read (✓✓ blue) receipts for private chats.
+- Requires the updated server.js; with the old server these packets are simply ignored and the app behaves as in v6.

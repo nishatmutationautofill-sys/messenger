@@ -1,6 +1,6 @@
 {
   "name": "web-messenger-android",
-  "version": "4.0.0",
+  "version": "7.0.0",
   "private": true,
   "description": "Advanced mobile-first messenger client with chat export, local notification test, share actions, dark mode, search and Android download support",
   "scripts": {

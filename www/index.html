@@ -675,7 +675,7 @@ function notifyProtocol(m){protocolHandlers.slice().forEach(fn=>{try{fn(m)}catch
 function setConn(v){conn=v;emit()}
 async function serverBase(){const r=await fetch(FIRESTORE,{cache:'no-store'});if(!r.ok)throw Error('Firestore থেকে chat server URL পাওয়া যায়নি।');const j=await r.json();const u=j.fields?.serverUrl?.stringValue;if(!u||!/^https:\/\//i.test(u))throw Error('config/chat-এর serverUrl সঠিক নয়।');return u.replace(/\/+$/,'')}
 function handle(m){if(!m||typeof m.t!=='string')return;
-if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
+if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal','typing','dm_delivered','dm_read'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
 switch(m.t){case 'welcome':uid=String(m.uid||m.userId||'');uploadKey=String(m.uploadKey||'');sessionToken=String(m.sessionToken||'');if(sessionToken&&$('webStayLoggedIn').checked){try{localStorage.setItem('mxWebSession',JSON.stringify({id:uid,token:sessionToken,stay:true}))}catch(_){}}admin=!!m.admin;username=String(m.username||m.displayName||m.name||m.profile?.username||m.user?.username||username||'User').slice(0,64);messages=(m.history||[]).map(cleanSupport);unread=0;updateServerProfile();setConn('connected');if(Array.isArray(m.friends)||Array.isArray(m.requests))notifyProtocol({t:'welcome',uid,friends:m.friends||[],requests:m.requests||[]});notifyProtocol({t:'group_history',gid:'public',messages:m.groupHistory||[]});sendRaw({t:'groups_list'});sendRaw({t:'users_list'});break;
 case 'msg':{const x=cleanSupport({...m,from:m.kind==='announce'?'announce':'admin'});if(!messages.some(y=>y.id===x.id))messages.push(x);unread++;emit();break}
 case 'ack':{const i=messages.findIndex(x=>x.cid===m.cid);if(i>=0){messages[i].id=String(m.mid);messages[i].status='sent';messages[i].ts=Number(m.ts)||Date.now()}emit();break}
@@ -807,6 +807,11 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     if (S.gid === gid) { S.gid = PUB; S.info = false; if (protoOK()) sendProto({ t: "group_open", gid: PUB }); }
   }
 
+  function wmTyping(name) {
+    const e = document.getElementById("wmTyping"); if (!e) return;
+    e.textContent = name + " typing…"; e.style.display = "block";
+    clearTimeout(wmTyping.t); wmTyping.t = setTimeout(() => { e.style.display = "none"; }, 4000);
+  }
   function onProto(m) {
     if (!m || typeof m.t !== "string") return;
     S.seen++;
@@ -861,6 +866,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
         break;
       case "dm_history":
         if (m.peerId && Array.isArray(m.messages)) S.dm[m.peerId] = m.messages.concat(dmList(m.peerId).filter((x) => x.local));
+        if (m.peerId && viewing() && S.mode === "dm" && S.peer === m.peerId) sendProto({ t: "dm_read", peerId: m.peerId });
         break;
       case "dm_sent":
         if (msg) {
@@ -879,7 +885,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
             pushUnique(a, msg);
             if (!mine) {
               saveRecent(key);
-              if (!(viewing() && S.mode === "dm" && S.peer === key)) { S.unreadD++; S.unreadPeer[key] = (S.unreadPeer[key] || 0) + 1; }
+              if (!(viewing() && S.mode === "dm" && S.peer === key)) { S.unreadD++; S.unreadPeer[key] = (S.unreadPeer[key] || 0) + 1; } else sendProto({ t: "dm_read", peerId: key });
             }
           }
         }
@@ -889,6 +895,13 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
         const id = String(m.mid || m.id || ""); if (id) dropById(id);
         break;
       }
+      case "typing": {
+        const key = m.scope === "group" ? (m.gid || PUB) : m.peerId;
+        if (viewing() && ((m.scope === "group" && S.mode === "group" && S.gid === key) || (m.scope !== "group" && S.mode === "dm" && S.peer === key))) wmTyping(m.name || "Someone");
+        break;
+      }
+      case "dm_delivered": { const it = dmList(m.peerId).find((x) => x.mid === m.mid || x.id === m.mid); if (it) it.delivered = true; break; }
+      case "dm_read": dmList(m.peerId).forEach((x) => { if (x.mine && (!m.upTo || x.ts <= m.upTo)) { x.read = true; x.delivered = true; } }); break;
       case "dm_error": S.notice = "Could not open private chat. Check the ID — you must be friends or members of the same group."; break;
       case "err": if (m.code === "rate") S.notice = "You are sending messages too quickly. Please try again shortly."; break;
       default: try { console.debug("[chat] proto", m); } catch (_) {}
@@ -1288,8 +1301,8 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
       if (showTxt) { const t = el("div", "mx-t"); linkify(t, it.text); b.appendChild(t); }
 
       const foot = el("div", "mx-foot");
-      const mark = !it.mine ? "" : it.state === "pending" ? "  ⏳" : it.state === "failed" ? "  ⚠️" : "  ✓";
-      const tm = el("span", "mx-time", fmt(it.ts) + mark); if (it.state === "failed") tm.title = it.err || "Could not send"; foot.appendChild(tm);
+      const mark = !it.mine ? "" : it.state === "pending" ? "  ⏳" : it.state === "failed" ? "  ⚠️" : (it.read || it.readAt || it.delivered) ? "  ✓✓" : "  ✓";
+      const tm = el("span", "mx-time", fmt(it.ts) + mark); if (it.mine && (it.read || it.readAt)) tm.classList.add("wm-read"); if (it.state === "failed") tm.title = it.err || "Could not send"; foot.appendChild(tm);
       if (it.state === "failed" && it.local) foot.appendChild(fbtn("retry", "Retry", "Send again", "retry", () => retry(it)));
       b.appendChild(foot);
       col.appendChild(b); row.appendChild(col); list.appendChild(row);
@@ -1402,6 +1415,12 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const s = input.selectionStart ?? input.value.length, en = input.selectionEnd ?? s;
     input.value = input.value.slice(0, s) + e + input.value.slice(en); input.focus(); input.selectionStart = input.selectionEnd = s + e.length; grow();
   }); $("mxEmoji").appendChild(b); });
+  let wmLastTyp = 0;
+  input.addEventListener("input", () => {
+    if (!input.value || S.mode === "admin" || (S.mode === "dm" && !S.peer) || Date.now() - wmLastTyp < 3000 || !protoOK()) return;
+    wmLastTyp = Date.now();
+    sendProto(S.mode === "group" ? { t: "typing", scope: "group", gid: S.gid } : { t: "typing", scope: "dm", peerId: S.peer });
+  });
   $("mxEmojiBtn").addEventListener("click", () => { $("mxEmoji").hidden = !$("mxEmoji").hidden; });
 
   // -------- WebRTC voice call (Node.js WebSocket signalling; no Firestore call records) --------
@@ -1674,5 +1693,60 @@ img,video{max-width:100%;height:auto}
 })();
 </script>
 
+
+<style id="wm-v6-parity">
+#mxContextMenu button{display:block;width:100%}
+.mx-quote{border-left:3px solid #06cf9c;background:rgba(6,207,156,.12);border-radius:6px;padding:4px 8px;margin:0 0 4px;font-size:.85em;opacity:.9;white-space:pre-wrap;word-break:break-word}
+.wm-read{color:#34b7f1!important}
+#wmTyping{display:none;padding:2px 14px;font-size:.8em;font-style:italic;opacity:.75}
+.mx-fwd{font-size:.75em;opacity:.7;font-style:italic;margin-bottom:2px}
+.mx-m.wm-star .mx-time::before{content:"★ ";color:#f5b301}
+#wmReplyBar{display:none;align-items:center;gap:8px;padding:6px 12px;border-left:4px solid #06cf9c;background:rgba(6,207,156,.1);font-size:.85em}
+#wmReplyBar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wmReplyBar button{background:none;border:0;font-size:1.2em;cursor:pointer;color:inherit}
+</style>
+<script id="wm-v6-parity-js">
+(function(){'use strict';
+const $=id=>document.getElementById(id);
+const list=$('mxList'),input=$('chatInput'),send=$('chatSend'),menu=$('mxContextMenu');
+if(!list||!input||!send||!menu)return;
+let quote='',fwd=false;
+const KEY='wmStarred';
+const stars=()=>{try{return new Set(JSON.parse(localStorage.getItem(KEY)||'[]'))}catch(_){return new Set()}};
+const saveStars=s=>{try{localStorage.setItem(KEY,JSON.stringify([...s]))}catch(_){}};
+const sig=row=>{const t=row.querySelector('.mx-t'),f=row.querySelector('.mx-time');return (t?t.textContent:'').slice(0,80)+'|'+(f?f.textContent.replace(/[^0-9:APMapm ]/g,'').trim():'')};
+const selRow=()=>list.querySelector('.mx-m.selected');
+const rawText=row=>{const t=row&&row.querySelector('.mx-t');return t?(t.dataset.raw||t.textContent):''};
+const bar=document.createElement('div');bar.id='wmReplyBar';
+const ty=document.createElement('div');ty.id='wmTyping';input.parentElement.parentElement.insertBefore(ty,input.parentElement);
+bar.innerHTML='<span></span><button type="button" aria-label="Cancel reply">✕</button>';
+input.parentElement.parentElement.insertBefore(bar,input.parentElement);
+const setQuote=q=>{quote=q;bar.style.display=q?'flex':'none';bar.firstChild.textContent=q?'↪ '+q.replace(/\n/g,' '):''};
+bar.lastChild.onclick=()=>setQuote('');
+function add(id,label,fn){if($(id))return;const b=document.createElement('button');b.id=id;b.type='button';b.textContent=label;b.addEventListener('click',e=>{e.stopPropagation();const row=selRow();menu.hidden=true;if(row)fn(row)});menu.insertBefore(b,menu.firstChild)}
+add('wmFwd','Forward',row=>{const t=rawText(row);if(!t)return;fwd=true;input.value='⤼ Forwarded\n'+t;input.dispatchEvent(new Event('input'));const b=document.querySelector('#chatModal .mx-dir-btn[data-directory="chat"]');if(b)b.click();input.focus();alert('এখন যে চ্যাটে পাঠাতে চান সেটি খুলে Send চাপুন।')});
+add('wmStar','Star',row=>{const s=stars(),k=sig(row);s.has(k)?s.delete(k):s.add(k);saveStars(s);row.classList.toggle('wm-star',s.has(k))});
+add('wmReply','Reply',row=>{const t=rawText(row).replace(/^↪[^\n]*\n—\n/,'').slice(0,100);if(!t)return;setQuote(t);input.focus()});
+// Send: prepend quote before the app's own handlers read input.value
+function inject(){if(quote&&input.value.trim()&&!input.value.startsWith('↪ ')){input.value='↪ '+quote.replace(/\n/g,' ')+'\n—\n'+input.value}}
+const afterSend=()=>setTimeout(()=>{if(!input.value.trim())setQuote('')},50);
+send.addEventListener('click',()=>{inject();afterSend()},true);
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){inject();afterSend()}},true);
+// Render quote/forward/star decorations
+function decorate(){list.querySelectorAll('.mx-m').forEach(row=>{
+ const t=row.querySelector('.mx-t');
+ if(t&&!t.dataset.wm){t.dataset.wm='1';t.dataset.raw=t.textContent;
+  let s=t.textContent,m=s.match(/^↪ ([^\n]*)\n—\n([\s\S]*)$/);
+  if(m){t.textContent='';const q=document.createElement('div');q.className='mx-quote';q.textContent=m[1];const b=document.createElement('div');b.textContent=m[2];t.append(q,b);s=m[2]}
+  else if(/^⤼ Forwarded\n/.test(s)){const r=s.replace(/^⤼ Forwarded\n/,'');t.textContent='';const f=document.createElement('div');f.className='mx-fwd';f.textContent='⤼ Forwarded';const b=document.createElement('div');b.textContent=r;t.append(f,b)}}
+ if(stars().has(sig(row)))row.classList.add('wm-star')})}
+new MutationObserver(decorate).observe(list,{childList:true});decorate();
+// Swipe right on a message to reply (touch)
+let sx=0,sy=0,srow=null;
+list.addEventListener('touchstart',e=>{const r=e.target.closest('.mx-m');srow=r;if(r){sx=e.touches[0].clientX;sy=e.touches[0].clientY}},{passive:true});
+list.addEventListener('touchend',e=>{if(!srow)return;const dx=e.changedTouches[0].clientX-sx,dy=Math.abs(e.changedTouches[0].clientY-sy);
+ if(dx>70&&dy<30){const t=rawText(srow).replace(/^↪[^\n]*\n—\n/,'').slice(0,100);if(t){setQuote(t);input.focus()}}srow=null},{passive:true});
+})();
+</script>
 </body>
 </html>
