@@ -21,6 +21,84 @@ body{background:#eef2f8!important} #chatModal{right:0!important;bottom:0!importa
 #webReopen{position:fixed;right:18px;bottom:18px;z-index:99;border:0;border-radius:999px;background:#4f46e5;color:#fff;padding:12px 18px;box-shadow:0 8px 30px #11182730;display:none}
 @media(max-width:520px){#webPairGate .wg-card{padding:22px;border-radius:18px}}
 </style>
+<style id="whatsapp-mobile-refresh">
+
+/* ===== Mobile-first WhatsApp-inspired visual refresh ===== */
+:root{--wa-green:#075e54;--wa-green-2:#128c7e;--wa-lime:#25d366;--wa-ink:#102a2a;--wa-muted:#6b8180;--wa-line:#dce8e4;--wa-paper:#efeae2;--wa-card:#ffffff}
+html{height:100%;height:100dvh;overscroll-behavior:none;-webkit-text-size-adjust:100%;}
+body{height:100%;height:100dvh;min-height:0!important;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+#chatModal{box-sizing:border-box!important;display:none;flex-direction:column!important;overflow:hidden!important;background:var(--wa-paper)!important;color:var(--wa-ink)!important;border:0!important;box-shadow:none!important;isolation:isolate;padding-top:env(safe-area-inset-top)!important;padding-bottom:env(safe-area-inset-bottom)!important}
+#chatModal *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+#chatModal.web-authenticated{display:flex!important}
+#chatModal #mxHead{min-height:62px;padding:9px 12px!important;gap:11px!important;background:linear-gradient(115deg,#075e54,#087f72 62%,#0c9a84)!important;box-shadow:0 3px 14px #063d3530!important;z-index:5}
+#chatModal .mx-av{width:42px!important;height:42px!important;min-width:42px!important;border:2px solid #ffffff45!important;box-shadow:0 2px 8px #003b3435}
+#chatModal .mx-ti{min-width:0;flex:1}
+#chatModal .mx-ti b{font-size:15px!important;font-weight:750!important;letter-spacing:.1px}
+#chatModal .mx-ti small{font-size:11px!important;color:#d4f5ed!important}
+#chatModal #webLogoutBtn{background:#ffffff1b!important;border:1px solid #ffffff40!important;color:#fff!important;padding:8px 10px!important;border-radius:10px!important}
+#chatModal #mxHead .mx-ib{width:36px;height:36px;border-radius:50%;background:#ffffff17!important;color:#fff!important;border:1px solid #ffffff25!important;display:grid;place-items:center}
+#chatModal #chatBody{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;display:flex;flex-direction:column;background:var(--wa-paper)!important}
+#chatModal #mxTabs{display:flex;gap:4px;padding:7px 9px!important;background:#fff!important;border-bottom:1px solid var(--wa-line)!important;box-shadow:0 2px 8px #0a51420a;flex:none;overflow-x:auto;scrollbar-width:none}
+#chatModal #mxTabs::-webkit-scrollbar{display:none}
+#chatModal .mx-tab{flex:1 0 auto;min-width:0;min-height:39px;padding:8px 10px!important;border-radius:11px!important;border:1px solid transparent!important;background:transparent!important;color:#55716c!important;font-size:12px!important;font-weight:700!important;white-space:nowrap}
+#chatModal .mx-tab.active{background:#e2f5ee!important;color:#075e54!important;border-color:#c1e9dc!important;box-shadow:inset 0 -2px #128c7e}
+#chatModal .mx-panel{border-radius:14px!important;border-color:#dce8e4!important;box-shadow:0 4px 16px #174a3b0b!important}
+#chatModal input,#chatModal textarea,#chatModal select{font-size:16px!important;max-width:100%;}
+#chatModal button{touch-action:manipulation;transition:background-color .16s,border-color .16s,transform .16s,box-shadow .16s}
+#chatModal button:active{transform:scale(.975)}
+#chatModal #mxGroupBar{flex:none;background:#fff!important;border-bottom:1px solid var(--wa-line)!important}
+#chatModal #mxGroups{padding:8px 10px!important;gap:7px!important}
+#chatModal .mx-gsel{height:38px!important;border-radius:12px!important;background:#f4faf7!important;border-color:#dcebe5!important}
+#chatModal #mxGPanel{border-radius:15px!important;box-shadow:0 12px 30px #102a2a20!important}
+#chatModal #mxListWrap{flex:1 1 0!important;min-height:0!important;overflow:hidden!important;background-color:var(--wa-paper)!important;background-image:radial-gradient(circle at 20px 20px,#0a6c5b0b 1.1px,transparent 1.3px),radial-gradient(circle at 7px 12px,#0a6c5b08 1px,transparent 1.2px)!important;background-size:38px 38px,29px 29px!important}
+#chatModal #mxList{min-height:100%;padding:12px 10px 16px!important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#b7ccc4 transparent}
+#chatModal #mxList::-webkit-scrollbar{width:4px}
+#chatModal #mxList::-webkit-scrollbar-thumb{background:#b7ccc4;border-radius:8px}
+#chatModal #mxDown{right:12px!important;bottom:12px!important;width:42px!important;height:42px!important;border-radius:50%!important;background:#fff!important;color:#087f72!important;box-shadow:0 4px 16px #163d3228!important;border:1px solid #d8e7e1!important}
+#chatModal #chatUp{background:#e5f6ef!important;border-top:1px solid #cfe9de!important;color:#087f72!important}
+#chatModal #chatBar{gap:7px!important;padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important;background:#f8fbfa!important;border-top:1px solid #dce8e4!important;box-shadow:0 -5px 18px #183f3310!important;align-items:flex-end!important}
+#chatModal #chatInput{flex:1 1 auto!important;min-width:0!important;min-height:42px!important;max-height:120px!important;padding:11px 14px!important;border:1px solid #d7e5df!important;border-radius:22px!important;background:#fff!important;color:#102a2a!important;box-shadow:0 1px 3px #102a2a08!important;outline:none!important;line-height:1.35!important;resize:none!important}
+#chatModal #chatInput:focus{border-color:#55bca4!important;box-shadow:0 0 0 3px #25d36620!important}
+#chatModal #chatBar .mx-ib{width:40px!important;height:40px!important;min-width:40px!important;border-radius:50%!important;border:1px solid #dbe8e2!important;background:#fff!important;color:#087f72!important;display:grid!important;place-items:center!important}
+#chatModal #mx-send,#chatModal .mx-send,#chatModal #chatSend{background:linear-gradient(145deg,#18b985,#078675)!important;color:#fff!important;border:0!important;box-shadow:0 4px 10px #07867535!important}
+#chatModal #mxEmoji{max-width:calc(100vw - 16px)!important;border-radius:16px!important;box-shadow:0 12px 34px #102a2a28!important}
+#chatModal #mxContextMenu{border-radius:12px!important;box-shadow:0 12px 32px #102a2a28!important;overflow:hidden}
+#chatModal .mx-btn{border-radius:11px!important;min-height:38px}
+#chatModal .mx-btn.block{min-height:44px}
+#webPairGate{padding:20px!important;background:radial-gradient(ellipse at 10% 0%,#25d3662c,transparent 38%),radial-gradient(ellipse at 100% 100%,#0c9a8428,transparent 40%),linear-gradient(145deg,#e9f5f0,#eef4f7)!important;overflow-y:auto!important;overscroll-behavior:contain}
+#webPairGate .wg-card{width:min(430px,100%)!important;padding:clamp(22px,6vw,32px)!important;border:1px solid #ffffffd9!important;border-radius:26px!important;background:#ffffffed!important;box-shadow:0 24px 70px #075e541c,0 4px 14px #075e540c!important;backdrop-filter:blur(18px)}
+#webPairGate h1{color:#075e54!important;font-size:clamp(22px,5vw,27px)!important;letter-spacing:-.5px}
+#webPairGate button{background:linear-gradient(120deg,#075e54,#128c7e,#25a989)!important;box-shadow:0 8px 18px #128c7e35!important;min-height:46px}
+#webPairGate input{min-height:46px!important;border-radius:13px!important;background:#fbfefd!important}
+#webPairGate input:focus{border-color:#128c7e!important;box-shadow:0 0 0 3px #128c7e20!important}
+@media(max-width:600px){
+  html,body{width:100%;height:100%;height:100dvh;min-height:0!important;overflow:hidden!important}
+  #chatModal{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;height:100dvh!important;max-width:none!important;max-height:none!important;border-radius:0!important;margin:0!important}
+  #chatModal #mxHead{min-height:calc(56px + env(safe-area-inset-top));padding-top:calc(8px + env(safe-area-inset-top))!important}
+  #chatModal #mxTabs{padding:6px 7px!important;gap:4px}
+  #chatModal .mx-tab{min-height:38px;padding:8px 9px!important;font-size:11.5px!important}
+  #chatModal #mxList{padding:10px 8px 14px!important}
+  #chatModal #chatBar{padding-left:8px!important;padding-right:8px!important;gap:6px!important}
+  #chatModal #chatInput{min-height:41px!important;padding:10px 13px!important}
+  #chatModal #chatBar .mx-ib{width:38px!important;height:38px!important;min-width:38px!important}
+  #chatModal #mxCallPanel{max-width:calc(100vw - 20px)!important}
+  #chatModal .mx-directory-content{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+}
+@media(max-width:380px){
+  #chatModal #mxHead{gap:7px!important;padding-left:8px!important;padding-right:8px!important}
+  #chatModal .mx-av{width:37px!important;height:37px!important;min-width:37px!important}
+  #chatModal .mx-ti b{font-size:14px!important}
+  #chatModal #webLogoutBtn{padding:7px!important;font-size:10px!important}
+  #chatModal .mx-tab{font-size:10.5px!important;padding:7px 8px!important}
+  #chatModal #chatBar .mx-ib{width:35px!important;height:35px!important;min-width:35px!important}
+}
+@media(min-width:900px){
+  #chatModal #mxList{padding:18px 18px 22px!important}
+  #chatModal #chatBar{padding:12px 16px!important}
+}
+@media(prefers-reduced-motion:reduce){#chatModal *,#webPairGate *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+</style>
 </head>
 <body>
 
@@ -585,7 +663,7 @@ case 'err':if(m.code==='rate')alert('অনেক দ্রুত মেসে�
 }}
 async function connect(id,code,token){base=await serverBase();uid=id;setConn('connecting');const url=base.replace(/^https:/,'wss:')+'/ws';ws=new WebSocket(url);ws.addEventListener('open',()=>sendRaw(token?{t:'pair_resume',id,token}:{t:'pair_hello',id,code}));ws.addEventListener('message',ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}if(m.t==='pair_error'){ $('webPairErr').textContent=({invalid_or_expired_code:'কোড ভুল, মেয়াদ শেষ, অথবা ইতিমধ্যে ব্যবহার করা হয়েছে।',rate_limited:'অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।',unknown_machine:'Machine ID পাওয়া যায়নি।',banned:'এই অ্যাকাউন্টে চ্যাট বন্ধ।'}[m.error]||('Pairing ব্যর্থ: '+m.error));setConn('offline');return}handle(m)});ws.addEventListener('close',()=>{if(conn==='connected'||conn==='connecting')setConn('offline');if(!closedByUser&&!manualLogout){$('webPairGate').style.display='grid';$('webPairErr').textContent='সংযোগ বিচ্ছিন্ন হয়েছে। পুনরায় সংযোগের চেষ্টা করুন।';$('chatModal').classList.remove('web-authenticated')}});ws.addEventListener('error',()=>{$('webPairErr').textContent='সার্ভারে সংযোগ করা যায়নি। HTTPS/server URL পরীক্ষা করুন।'});return new Promise((resolve,reject)=>{const started=Date.now();const timer=setInterval(()=>{if(conn==='connected'){clearInterval(timer);$('webPairGate').style.display='none';$('chatModal').classList.add('web-authenticated');resolve({ok:true})}else if(conn==='offline'&&Date.now()-started>1500){clearInterval(timer);reject(Error($('webPairErr').textContent||'Pairing failed'))}else if(Date.now()-started>12000){clearInterval(timer);reject(Error('সার্ভারের উত্তর আসেনি।'))}},100)})}
 function upload(file,caption,opts){return new Promise(async resolve=>{try{if(!file||!uploadKey||conn!=='connected')return resolve({ok:false,error:'সংযোগ নেই'});if(file.size>150*1024*1024)return resolve({ok:false,error:'সর্বোচ্চ ১৫০ MB ফাইল পাঠানো যাবে'});const headers={'Content-Type':'application/octet-stream','X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-File-Name':encodeURIComponent(file.name)};if(caption)headers['X-Caption']=encodeURIComponent(caption.slice(0,500));if(opts?.scope){headers['X-Scope']=opts.scope;headers['X-Peer']=opts.peer}const r=await fetch(base+'/upload',{method:'POST',headers,body:file});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)return resolve({ok:false,error:j.error||('Upload failed '+r.status)});if(!opts?.scope){const x={id:String(j.mid),from:'me',text:String(j.text||caption||('📎 '+file.name)),ts:Number(j.ts)||Date.now(),status:'sent',file:cleanFile(j.file)};messages.push(x);emit()}resolve({ok:true})}catch(e){resolve({ok:false,error:e.message||'Upload failed'})}})}
-window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid)+'?dl=1');if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ'};const b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name||'download';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000);return{ok:true}}catch(e){return{ok:false,error:e.message}}},previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
+window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const url=base+'/f/'+encodeURIComponent(fid)+'?dl=1';if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.download=name||'download';document.body.appendChild(a);a.click();a.remove();return{ok:true}}const r=await fetch(url);if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ ('+r.status+')'};const b=await r.blob(),a=document.createElement('a'),obj=URL.createObjectURL(b);a.href=obj;a.download=name||'download';a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),60000);return{ok:true}}catch(e){return{ok:false,error:e.message||'ফাইল ডাউনলোড ব্যর্থ'}}},previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
 $('mxProtocolFile').addEventListener('change',async e=>{const f=e.target.files?.[0],p=pendingFile;pendingFile=null;if(!p)return;if(!f)return p.resolve({ok:false,canceled:true});const r=await upload(f,p.caption,p.opts);p.resolve(r)});
 $('webPairForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('webPairSubmit'),err=$('webPairErr');err.textContent='';b.disabled=true;const id=$('webMachineId').value.trim(),code=$('webPairCode').value.trim();if(!/^[A-Za-z0-9_-]{6,128}$/.test(id)||!/^\d{8}$/.test(code)){err.textContent='Machine ID বা ৮ সংখ্যার কোড সঠিক নয়।';b.disabled=false;return}try{await connect(id,code);$('webPairCode').value='';$('webReopen').style.display='none';if(!$('webStayLoggedIn').checked){try{localStorage.removeItem('mxWebSession')}catch(_){}}}catch(ex){err.textContent=ex.message||'সংযোগ ব্যর্থ'}finally{b.disabled=false}});
 $('webLogoutBtn').addEventListener('click',()=>{manualLogout=true;try{if(ws&&ws.readyState===WebSocket.OPEN)sendRaw({t:'pair_logout',id:uid,token:sessionToken});localStorage.removeItem('mxWebSession')}catch(_){}closedByUser=true;try{ws?.close(1000,'logout')}catch(_){}ws=null;uid='';uploadKey='';sessionToken='';messages=[];setConn('offline');$('chatModal').classList.remove('web-authenticated');$('webPairGate').style.display='grid';$('webPairErr').textContent='আপনি লগআউট করেছেন। আবার প্রবেশ করতে pairing code দিন।';$('webPairCode').value='';$('webReopen').style.display='none';manualLogout=false;closedByUser=false;});

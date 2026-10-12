@@ -1,40 +1,20 @@
-# Web Messenger — Android APK project
+# Web Messenger Android
 
-এই প্রজেক্টে আপনার দেওয়া `web-messenger(1).html` ফাইলটি Capacitor Android অ্যাপের ভিতরে রাখা হয়েছে। GitHub Actions দিয়ে Android **debug APK** তৈরি হবে।
+Capacitor-based Android app project built around the supplied Web Messenger client. The Android package includes native Android download handling through `DownloadManager`, microphone/camera/internet permissions, and a GitHub Actions workflow that builds a debug APK.
 
-## GitHub দিয়ে APK বানানোর নিয়ম
+## Build on GitHub
 
-1. GitHub-এ নতুন একটি **Public** বা **Private** repository তৈরি করুন।
-2. এই ZIP ফাইলটি Extract করে ভিতরের সব ফাইল repository-তে upload/commit করুন। `package.json`, `capacitor.config.json`, `www/` এবং `.github/` যেন repository root-এ থাকে।
-3. GitHub repository-তে **Actions** ট্যাব খুলুন।
-4. `Build Android APK` workflow নির্বাচন করে **Run workflow** চাপুন। `main`/`master` branch-এ push করলেও workflow চলবে।
-5. কাজ শেষ হলে workflow run-এর নিচের **Artifacts** থেকে `Web-Messenger-debug-APK` ডাউনলোড করুন।
-6. ZIP artifact Extract করলে `app-debug.apk` পাবেন। Android ফোনে ইনস্টল করার সময় প্রয়োজন হলে “Install unknown apps” অনুমতি দিন।
+1. Upload the contents of this directory to the **root** of your GitHub repository (not inside `.github/workflows`).
+2. Ensure `www/index.html`, `package.json`, `capacitor.config.json`, `scripts/prepare-android.mjs`, and `.github/workflows/main.yml` are at the paths shown in the repository tree.
+3. Open **Actions → Build Android APK → Run workflow**.
+4. Download the `Web-Messenger-debug-APK` artifact and extract `app-debug.apk`.
 
-## অ্যাপের সংযোগ ও কল
+## Important behavior and requirements
 
-- এই HTML-এ থাকা pairing flow ব্যবহার করতে মূল সফটওয়্যারের Messenger → Name & ID থেকে Machine ID ও একবার ব্যবহারযোগ্য ৮ সংখ্যার pairing code নিতে হবে।
-- HTML-এর বর্তমান কোড Firestore config `nishatmutationautofill-3bde4` থেকে `serverUrl` পড়ে এবং WebSocket `/ws`-এ যুক্ত হয়। সার্ভার/Firestore config সচল না থাকলে অ্যাপ লগইন বা মেসেজিং করতে পারবে না।
-- HTTPS/WSS সার্ভার আবশ্যক। Android WebView-এর ভিতরে microphone/camera permission চাওয়া হলে অনুমতি দিন।
-- Stay logged in ব্যবহার করলে pairing session ডিভাইসের WebView local storage-এ থাকে। Logout করলে সেভ করা session সরানো হয়।
-
-## গুরুত্বপূর্ণ সীমাবদ্ধতা
-
-- এটি **debug APK**; Play Store বা বিতরণের জন্য production-signed release APK নয়। Release build-এর জন্য keystore/signing configuration যোগ করতে হবে।
-- GitHub build সফল হওয়া মানেই আপনার live chat backend, pairing, file upload, group/private chat বা voice call সার্ভারে end-to-end পরীক্ষা হয়েছে—এমন নয়। সেগুলো কার্যকর হতে বিদ্যমান backend protocol ও server configuration ঠিক থাকতে হবে।
-- Android WebView-এ voice call-এর জন্য microphone permission manifest-এ যোগ করা হয়েছে; কিন্তু নির্দিষ্ট Android/WebView ডিভাইসে WebRTC permission prompt আচরণ আলাদাভাবে পরীক্ষা করা প্রয়োজন।
-- Firebase/server secret এই repository-তে যোগ করবেন না। Pairing code কাউকে দেবেন না।
-
-## প্রজেক্ট কাঠামো
-
-```text
-web-messenger-android/
-├── .github/workflows/build-apk.yml
-├── scripts/prepare-android.mjs
-├── www/index.html
-├── capacitor.config.json
-├── package.json
-└── README.md
-```
-
-Android native project GitHub Actions-এ `npx cap add android` দিয়ে তৈরি হয়; ফলে Android Studio project হাতে করে commit করার প্রয়োজন নেই।
+- This is an Android hybrid app: the existing messenger client runs inside Android's WebView, with native Android download handling. It is not a complete Kotlin-native UI rewrite.
+- File downloads use Android's `DownloadManager` when the app triggers a direct download link. The server must allow `/f/<file-id>?dl=1` to be downloaded by the authenticated client; if the server requires custom upload/auth headers, its download endpoint must support an authorized download URL or a native authenticated download implementation.
+- Foreground chat and WebRTC calling depend on the existing WebSocket/backend signaling server and HTTPS/TLS configuration.
+- True background incoming-message/call notifications require Firebase Cloud Messaging (FCM), Firebase app configuration, and backend code to send push notifications. Those cannot be enabled just by changing the Android UI/workflow; do not expect WhatsApp-like background push notifications until these are configured.
+- Android 13+ notification permission is declared. Runtime notification prompting and FCM delivery must be implemented/configured for actual push notifications.
+- Test microphone, camera, calls, file downloads, reconnect, and Android background behavior on a real device. Build success alone does not verify backend behavior.
+- GitHub Actions creates a **debug APK**, not a Play Store release-signed APK.
