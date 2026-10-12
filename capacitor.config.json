@@ -7,5 +7,20 @@
   },
   "android": {
     "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "backgroundColor": "#071f1b",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#075e54"
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "DARK"
+    }
   }
 }

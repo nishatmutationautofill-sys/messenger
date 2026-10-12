@@ -12,7 +12,9 @@ const permissions = [
   "android.permission.RECORD_AUDIO",
   "android.permission.MODIFY_AUDIO_SETTINGS",
   "android.permission.CAMERA",
-  "android.permission.POST_NOTIFICATIONS"
+  "android.permission.POST_NOTIFICATIONS",
+  "android.permission.VIBRATE",
+  "android.permission.WAKE_LOCK"
 ];
 for (const permission of permissions) {
   const tag = `<uses-permission android:name="${permission}" />`;

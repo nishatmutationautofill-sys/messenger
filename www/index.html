@@ -99,6 +99,29 @@ body{height:100%;height:100dvh;min-height:0!important;overscroll-behavior:none;-
 @media(prefers-reduced-motion:reduce){#chatModal *,#webPairGate *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 </style>
+
+<style id="mx-modern-polish-v5">
+:root{--mx-accent:#0aa884;--mx-accent-deep:#087f68;--mx-ink:#102a2a;--mx-muted:#71818a}
+#chatModal{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important;border:1px solid rgba(12,148,116,.15)!important;border-radius:26px!important;overflow:hidden!important;box-shadow:0 28px 90px rgba(5,45,42,.22),0 4px 18px rgba(5,45,42,.08)!important;background:#f4f8f7!important}
+#mxHead{background:linear-gradient(120deg,#064e46 0%,#087f68 52%,#0bb88b 100%)!important;color:#fff!important;padding:15px 17px!important;min-height:76px!important}
+#mxHead .mx-ti b{font-size:15px!important;letter-spacing:-.25px!important;color:#fff!important}#mxHead .mx-ti small{color:#d2f7eb!important}
+#mxHead .mx-av{width:43px!important;height:43px!important;border:2px solid rgba(255,255,255,.55)!important;box-shadow:0 5px 16px #003e3233!important}
+#mxHead .mx-ib{border-radius:13px!important;background:#ffffff18!important;color:#fff!important;border:1px solid #ffffff22!important}#mxHead .mx-ib:hover{background:#ffffff30!important}
+#webLogoutBtn{background:#ffffff18!important;color:white!important;border:1px solid #ffffff35!important;border-radius:11px!important;padding:8px 10px!important}
+#chatBody{background:linear-gradient(180deg,#f7fbf9,#eef5f3)!important}#mxTabs{padding:10px 12px!important;gap:7px!important;background:#fff!important;border-bottom:1px solid #e3eeea!important}
+.mx-tab{border-radius:13px!important;min-height:42px!important;font-weight:700!important;transition:all .18s ease!important}.mx-tab.active{background:linear-gradient(120deg,#087f68,#0aa884)!important;color:#fff!important;box-shadow:0 5px 13px #087f6828!important}
+.mx-bubble{border-radius:17px!important;box-shadow:0 2px 7px rgba(15,55,47,.045)!important}.mx-bubble.mine{border-bottom-right-radius:5px!important}.mx-bubble:not(.mine){border-bottom-left-radius:5px!important}
+#mxComposer,.mx-composer{background:#fff!important;border-top:1px solid #e1ece7!important;padding:11px 12px calc(11px + env(safe-area-inset-bottom,0px))!important}
+#mxComposer textarea,#mxComposer input,.mx-composer textarea,.mx-composer input{border:1px solid #dce9e4!important;border-radius:17px!important;background:#f6faf8!important;padding:12px 14px!important}
+#mxSendBtn,.mx-send{background:linear-gradient(135deg,#087f68,#0bb88b)!important;color:#fff!important;border-radius:16px!important;box-shadow:0 6px 16px #087f6830!important}
+.mx-panel{border:1px solid #e0ece7!important;border-radius:18px!important;background:#fff!important;box-shadow:0 10px 30px #0b55430b!important;padding:15px!important}
+.mx-profile-summary{display:flex;align-items:center;gap:12px;padding:4px 2px 15px;margin-bottom:12px;border-bottom:1px solid #e6efeb}.mx-profile-avatar{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border-radius:17px;color:#fff;font-weight:800;font-size:20px;background:linear-gradient(135deg,#087f68,#37c99e);box-shadow:0 7px 18px #087f682c}.mx-profile-summary div{display:flex;flex-direction:column;gap:3px;min-width:0}.mx-profile-summary small{font-size:11px;color:#748680}.mx-profile-summary strong{font-size:15px;color:#123b33;overflow-wrap:anywhere}.mx-row code{overflow-wrap:anywhere}
+#webPairGate{background:radial-gradient(ellipse at 0% 0%,#b7f4df 0%,transparent 42%),radial-gradient(ellipse at 100% 100%,#bcece1 0%,transparent 42%),linear-gradient(145deg,#effaf5,#f2f7fa)!important}#webPairGate .wg-card{border-radius:28px!important;border:1px solid #ffffff!important;box-shadow:0 30px 90px #064e461a!important}#webPairGate h1{letter-spacing:-.8px!important}
+button,input,textarea{-webkit-tap-highlight-color:transparent}
+@media(max-width:600px){#chatModal{inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;border-radius:0!important;border:0!important}#mxHead{padding-top:calc(12px + env(safe-area-inset-top,0px))!important}#mxTabs{padding-left:9px!important;padding-right:9px!important}.mx-tab{flex:1;justify-content:center}#mxComposer,.mx-composer{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))!important}}
+@media(prefers-reduced-motion:reduce){#chatModal *{animation:none!important;transition:none!important}}
+</style>
+
 </head>
 <body>
 
@@ -159,10 +182,9 @@ body{height:100%;height:100dvh;min-height:0!important;overscroll-behavior:none;-
     </div>
 
     <div id="mxProfile" class="mx-panel" hidden>
-      <div class="mx-row"><label for="chatName">Username</label><input id="chatName" class="mx-in" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Choose a username"></div>
-      <div class="mx-row"><button type="button" id="chatNameSave" class="mx-btn block">Save username</button></div>
-      <div class="mx-row"><label>ID</label><code id="mxMyId">—</code><button type="button" id="mxCopyId" class="mx-mini" title="Copy ID"><svg class="ic"><use href="#mxi-copy"/></svg></button></div>
-      <small class="mx-hint">Use English letters, numbers, dots, underscores, and hyphens. The first 4 characters of your machine ID will be added to your username.</small><div class="mx-row"><button type="button" id="mxPairCreate" class="mx-btn block">Generate one-time web pairing code</button></div><div class="mx-row" id="mxPairResult" hidden><label>Pairing code (expires in 5 minutes)</label><code id="mxPairCode" style="font-size:20px;letter-spacing:3px"></code><button type="button" id="mxPairCopy" class="mx-mini" title="Copy pairing code">Copy</button><small class="mx-hint">Enter this code with your machine ID on the web messenger. The code works once only.</small></div>
+      <div class="mx-profile-summary"><span class="mx-profile-avatar" id="mxProfileAvatar">U</span><div><small>Signed in as</small><strong id="mxServerUsername">Loading profile…</strong><small id="mxProfileStatus">Profile supplied by server</small></div></div>
+      <div class="mx-row"><label>Account ID</label><code id="mxMyId">—</code><button type="button" id="mxCopyId" class="mx-mini" title="Copy ID"><svg class="ic"><use href="#mxi-copy"/></svg></button></div>
+      <small class="mx-hint">আপনার নাম সার্ভার থেকে নেওয়া হয়। এখানে নাম তৈরি বা পরিবর্তনের প্রয়োজন নেই।</small>
     </div>
 
     <!-- Group tab: select groups, manage invitations, create groups, and view details -->
@@ -646,6 +668,7 @@ let ws=null,base='',uid='',uploadKey='',sessionToken='',username='User',conn='id
 const sendRaw=o=>{if(!ws||ws.readyState!==WebSocket.OPEN)return false;try{ws.send(JSON.stringify(o));return true}catch(_){return false}};
 const emit=()=>{const s=snapshot();stateHandlers.forEach(fn=>{try{fn(s)}catch(e){console.error(e)}})};
 function snapshot(){return {conn,uid,username,admin,unread,messages:messages.slice(-500),note:'',upload:null}}
+function updateServerProfile(){const n=$('mxServerUsername'),a=$('mxProfileAvatar');if(n)n.textContent=username||'User';if(a)a.textContent=String(username||'U').trim().charAt(0).toUpperCase()||'U';}
 function cleanFile(f){if(!f)return undefined;return {id:String(f.id||''),name:String(f.name||'file'),size:Number(f.size)||0,mime:String(f.mime||''),img:!!f.img,iv:f.iv,tag:f.tag}}
 function cleanSupport(m){return {id:String(m.mid||m.id||''),from:m.from==='user'?'me':(m.from==='announce'?'announce':'admin'),text:String(m.text||''),ts:Number(m.ts)||Date.now(),status:'sent',file:cleanFile(m.file)}}
 function notifyProtocol(m){protocolHandlers.slice().forEach(fn=>{try{fn(m)}catch(e){console.error(e)}})}
@@ -653,7 +676,7 @@ function setConn(v){conn=v;emit()}
 async function serverBase(){const r=await fetch(FIRESTORE,{cache:'no-store'});if(!r.ok)throw Error('Firestore থেকে chat server URL পাওয়া যায়নি।');const j=await r.json();const u=j.fields?.serverUrl?.stringValue;if(!u||!/^https:\/\//i.test(u))throw Error('config/chat-এর serverUrl সঠিক নয়।');return u.replace(/\/+$/,'')}
 function handle(m){if(!m||typeof m.t!=='string')return;
 if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
-switch(m.t){case 'welcome':uid=String(m.uid||m.userId||'');uploadKey=String(m.uploadKey||'');sessionToken=String(m.sessionToken||'');if(sessionToken&&$('webStayLoggedIn').checked){try{localStorage.setItem('mxWebSession',JSON.stringify({id:uid,token:sessionToken,stay:true}))}catch(_){}}admin=!!m.admin;username='User';messages=(m.history||[]).map(cleanSupport);unread=0;setConn('connected');if(Array.isArray(m.friends)||Array.isArray(m.requests))notifyProtocol({t:'welcome',uid,friends:m.friends||[],requests:m.requests||[]});notifyProtocol({t:'group_history',gid:'public',messages:m.groupHistory||[]});sendRaw({t:'groups_list'});sendRaw({t:'users_list'});break;
+switch(m.t){case 'welcome':uid=String(m.uid||m.userId||'');uploadKey=String(m.uploadKey||'');sessionToken=String(m.sessionToken||'');if(sessionToken&&$('webStayLoggedIn').checked){try{localStorage.setItem('mxWebSession',JSON.stringify({id:uid,token:sessionToken,stay:true}))}catch(_){}}admin=!!m.admin;username=String(m.username||m.displayName||m.name||m.profile?.username||m.user?.username||username||'User').slice(0,64);messages=(m.history||[]).map(cleanSupport);unread=0;updateServerProfile();setConn('connected');if(Array.isArray(m.friends)||Array.isArray(m.requests))notifyProtocol({t:'welcome',uid,friends:m.friends||[],requests:m.requests||[]});notifyProtocol({t:'group_history',gid:'public',messages:m.groupHistory||[]});sendRaw({t:'groups_list'});sendRaw({t:'users_list'});break;
 case 'msg':{const x=cleanSupport({...m,from:m.kind==='announce'?'announce':'admin'});if(!messages.some(y=>y.id===x.id))messages.push(x);unread++;emit();break}
 case 'ack':{const i=messages.findIndex(x=>x.cid===m.cid);if(i>=0){messages[i].id=String(m.mid);messages[i].status='sent';messages[i].ts=Number(m.ts)||Date.now()}emit();break}
 case 'deleted':messages=messages.filter(x=>x.id!==String(m.mid));deletedHandlers.forEach(fn=>fn(String(m.mid)));emit();break;
@@ -790,7 +813,8 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const msg = m.message || (m.text != null ? m : null);
     switch (m.t) {
       case "pair_code":
-        $("mxPairCode").textContent = String(m.code || ""); $("mxPairResult").hidden = !m.code; toast("One-time pairing code created; valid for 5 minutes"); break;
+        /* Pairing-code generation is intentionally not exposed in the messenger UI. */
+        break;
       case "pair_error": toast("Pairing error: " + String(m.error || "unknown")); break;
       case "welcome":
         S.uid = String(m.uid || m.userId || m.id || S.uid || "");
@@ -1068,7 +1092,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const up = st.upload ? "⬆️ " + st.upload.name + " — " + st.upload.pct + "%" : "";
     upT.textContent = S.local || up; upBox.hidden = !(S.local || up);
     upB.className = st.upload ? "" : "ind"; upB.style.width = st.upload ? st.upload.pct + "%" : "";
-    if (document.activeElement !== $("chatName") && $("chatName").value !== (st.name || "")) $("chatName").value = st.name || "";
+    if (st.username) { username = String(st.username); const n=$("mxServerUsername"); if(n)n.textContent=username; const a=$("mxProfileAvatar"); if(a)a.textContent=username.trim().charAt(0).toUpperCase()||"U"; }
 
     renderMessages();
   }
@@ -1455,22 +1479,11 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
   $("chatMinBtn").addEventListener("click", (e) => { e.stopPropagation(); if (S.open) setMin(!S.min); });
   $("chatCloseBtn").addEventListener("click", (e) => { e.stopPropagation(); setOpen(false); });
   $("mxInfoBtn").addEventListener("click", (e) => { e.stopPropagation(); S.info = !S.info; S.create = false; if (S.info && protoOK()) { sendProto({ t: "groups_list" }); sendProto({ t: "users_list" }); } render(); });
-  $("chatNameBtn").addEventListener("click", (e) => { e.stopPropagation(); const b = $("mxProfile"); b.hidden = !b.hidden; if (!b.hidden) { $("chatName").value = String((S.st && S.st.username) || "User").replace(/[^A-Za-z0-9._-]/g, ""); $("chatName").focus(); $("chatName").select(); } });
+  $("chatNameBtn").addEventListener("click", (e) => { e.stopPropagation(); const b = $("mxProfile"); b.hidden = !b.hidden; if (!b.hidden) { const n=$("mxServerUsername"); if(n)n.textContent=String((S.st && S.st.username)||"User"); const a=$("mxProfileAvatar"); if(a)a.textContent=String((S.st&&S.st.username)||"U").trim().charAt(0).toUpperCase()||"U"; } });
   $("mxCopyId").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mxMyId").textContent); toast("ID copied"); } catch (_) { toast("Could not copy"); } });
-  $("mxPairCreate")?.addEventListener("click", () => { $("mxPairResult").hidden = true; sendProto({ t: "pair_create" }).then(r => { if (r && r.ok === false) toast("Could not create code: " + r.error); }); });
-  $("mxPairCopy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mxPairCode").textContent); toast("Pairing code copied"); } catch (_) { toast("Select and copy the code manually"); } });
   sendBtn.addEventListener("click", doSend);
   input.addEventListener("input", grow);
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); } });
-  async function saveChatName() {
-    const inputName = $("chatName").value.trim();
-    if (!/^[A-Za-z0-9._-]{1,24}$/.test(inputName)) { toast("Username may contain English letters, numbers, . _ and - only"); return; }
-    const result = await api.setName(inputName);
-    if (result && result.ok === false) toast(result.error || "Username save failed");
-    else { $("chatName").value = (result && result.username) || inputName; toast("Username saved"); }
-  }
-  $("chatNameSave").addEventListener("click", saveChatName);
-  $("chatName").addEventListener("keydown", (e) => { if (e.key === "Enter") saveChatName(); });
   document.querySelectorAll(".mx-tab").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
   $("dmOpenBtn").addEventListener("click", openDm);
   $("dmPeerId").addEventListener("keydown", (e) => { if (e.key === "Enter") openDm(); });
@@ -1555,5 +1568,111 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
 #chatModal .mx-gt small{display:block;font-size:10px;color:var(--mute)}
 #chatModal .mx-gempty{padding:14px 10px;text-align:center;font-size:11px;color:var(--mute)}
 </style>
+
+<style id="pro-messenger-suite">
+:root{--pro-bg:#efeae2;--pro-panel:#fff;--pro-ink:#102a2a;--pro-muted:#6b8180;--pro-accent:#087f72;--pro-line:#dce8e4}
+#mxProTools{display:flex;align-items:center;gap:7px;padding:8px 10px;background:linear-gradient(120deg,#f8fffc,#edf8f4);border-bottom:1px solid var(--pro-line);flex:none}
+#mxProSearch{min-width:0;flex:1;height:37px;border:1px solid #d3e4dd;border-radius:12px;padding:0 12px;background:#fff;color:#173a35;font:500 13px system-ui;outline:0}
+#mxProSearch:focus{border-color:#128c7e;box-shadow:0 0 0 3px #128c7e1c}
+.mx-pro-icon{width:37px;height:37px;flex:none;border:1px solid #d5e7df;border-radius:12px;background:#fff;color:#087f72;display:grid;place-items:center;font-size:17px;cursor:pointer}
+#mxProSettings{position:absolute;right:10px;top:115px;width:min(310px,calc(100vw - 28px));z-index:9999;background:#fff;border:1px solid #dce8e4;border-radius:18px;box-shadow:0 18px 50px #0b2d2530;padding:14px;color:#173a35}
+#mxProSettings[hidden],#mxProSearchStatus[hidden]{display:none!important}
+.mx-pro-setting{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid #edf3f0;font-size:13px}
+.mx-pro-setting:last-child{border-bottom:0}.mx-pro-setting button{border:1px solid #cfe2da;border-radius:9px;background:#f1faf6;color:#087f72;padding:7px 10px;font-weight:700}
+#mxProSearchStatus{padding:6px 12px;background:#e0f4ec;color:#075e54;font-size:11px;border-bottom:1px solid #cfe9de}
+#chatModal.pro-dark{--pro-bg:#0b141a;--pro-panel:#17232b;--pro-ink:#e8f3f5;--pro-muted:#9db1b9;--pro-line:#263b43;background:#0b141a!important;color:#e8f3f5!important}
+#chatModal.pro-dark #chatBody,#chatModal.pro-dark #mxListWrap{background-color:#0b141a!important}
+#chatModal.pro-dark #mxTabs,#chatModal.pro-dark #mxGroupBar,#chatModal.pro-dark #mxProTools,#chatModal.pro-dark #chatBar{background:#17232b!important;border-color:#263b43!important}
+#chatModal.pro-dark #mxProSearch,#chatModal.pro-dark #chatInput,#chatModal.pro-dark .mx-panel,#chatModal.pro-dark #mxGPanel{background:#101c23!important;color:#e8f3f5!important;border-color:#30464e!important}
+#chatModal.pro-dark .mx-tab{color:#b4c8ce!important}#chatModal.pro-dark .mx-tab.active{background:#17483f!important;color:#a9f1d9!important}
+#chatModal.pro-dark #mxProSettings{background:#17232b;color:#e8f3f5;border-color:#30464e}
+#chatModal.pro-dark .mx-pro-setting{border-color:#30464e}
+#chatModal.pro-dark .mx-pro-icon{background:#101c23;color:#8de5cb;border-color:#30464e}
+#chatModal .mx-msg[hidden],#chatModal .mx-message[hidden]{display:none!important}
+@media(max-width:420px){#mxProTools{padding:6px 8px;gap:5px}#mxProSearch{height:35px;font-size:12px}.mx-pro-icon{width:35px;height:35px}}
+</style>
+<script id="pro-messenger-suite-js">
+(()=>{
+ const ready=()=>{
+  const modal=document.getElementById('chatModal'), tabs=document.getElementById('mxTabs'), body=document.getElementById('chatBody');
+  if(!modal||!tabs||!body||document.getElementById('mxProTools'))return;
+  const tools=document.createElement('div');tools.id='mxProTools';tools.innerHTML='<input id="mxProSearch" type="search" placeholder="মেসেজ খুঁজুন…" aria-label="Search messages"><button class="mx-pro-icon" id="mxProTheme" title="ডার্ক / লাইট মোড" aria-label="Toggle theme">☾</button><button class="mx-pro-icon" id="mxProMore" title="সেটিংস" aria-label="Settings">⚙</button>';
+  tabs.insertAdjacentElement('afterend',tools);
+  const status=document.createElement('div');status.id='mxProSearchStatus';status.hidden=true;status.textContent='';tools.insertAdjacentElement('afterend',status);
+  const settings=document.createElement('section');settings.id='mxProSettings';settings.hidden=true;settings.innerHTML='<div style="font-weight:800;font-size:15px;padding:3px 2px 8px">মেসেঞ্জার সেটিংস</div><div class="mx-pro-setting"><span>ডার্ক মোড</span><button id="mxProDarkSwitch">চালু / বন্ধ</button></div><div class="mx-pro-setting"><span>নোটিফিকেশন অনুমতি</span><button id="mxProNotify">অনুমতি দিন</button></div><div class="mx-pro-setting"><span>চ্যাট সার্চ পরিষ্কার</span><button id="mxProClear">পরিষ্কার</button></div><div class="mx-pro-setting"><span>বর্তমান চ্যাট Export</span><button id="mxProExport">TXT সংরক্ষণ</button></div><div class="mx-pro-setting"><span>টেস্ট নোটিফিকেশন</span><button id="mxProTestNotify">টেস্ট</button></div><div class="mx-pro-setting"><span>শেয়ার</span><button id="mxProShare">শেয়ার করুন</button></div><div style="font-size:10px;line-height:1.5;color:var(--pro-muted);padding-top:9px">নোটিফিকেশন অনুমতি চালু করলেই ব্যাকগ্রাউন্ড পুশ সক্রিয় হয় না; এর জন্য Firebase ও সার্ভার ইন্টিগ্রেশন প্রয়োজন।</div>';
+  body.style.position='relative';body.appendChild(settings);
+  const search=document.getElementById('mxProSearch'), list=document.getElementById('mxList');
+  const darkKey='wm_pro_dark_v1';function setDark(v){modal.classList.toggle('pro-dark',v);try{localStorage.setItem(darkKey,v?'1':'0')}catch{}document.getElementById('mxProTheme').textContent=v?'☀':'☾'}
+  try{setDark(localStorage.getItem(darkKey)==='1')}catch{}
+  document.getElementById('mxProTheme').addEventListener('click',()=>setDark(!modal.classList.contains('pro-dark')));
+  document.getElementById('mxProMore').addEventListener('click',()=>settings.hidden=!settings.hidden);
+  document.getElementById('mxProDarkSwitch').addEventListener('click',()=>setDark(!modal.classList.contains('pro-dark')));
+  document.getElementById('mxProClear').addEventListener('click',()=>{search.value='';search.dispatchEvent(new Event('input'));settings.hidden=true});
+  document.getElementById('mxProNotify').addEventListener('click',async()=>{if(!('Notification'in window)){alert('এই পরিবেশে Notification API সমর্থিত নয়।');return}try{const p=await Notification.requestPermission();alert(p==='granted'?'নোটিফিকেশন অনুমতি দেওয়া হয়েছে।':'নোটিফিকেশন অনুমতি দেওয়া হয়নি।')}catch(e){alert('অনুমতি নেওয়া যায়নি: '+e.message)}});
+  document.getElementById('mxProExport').addEventListener('click',()=>{try{const rows=[...(document.getElementById('mxList')?.children||[])].filter(n=>!n.hidden).map(n=>(n.innerText||n.textContent||'').trim()).filter(Boolean);if(!rows.length){alert('এক্সপোর্ট করার মতো লোড হওয়া মেসেজ নেই।');return}const blob=new Blob(['Web Messenger — Chat Export\nExported: '+new Date().toLocaleString()+'\n\n'+rows.join('\n\n')],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='web-messenger-chat-'+new Date().toISOString().slice(0,10)+'.txt';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}catch(e){alert('Export ব্যর্থ: '+e.message)}});
+  document.getElementById('mxProTestNotify').addEventListener('click',async()=>{try{const C=window.Capacitor?.Plugins||{};if(C.LocalNotifications){const p=await C.LocalNotifications.requestPermissions();if(p.display!=='granted'){alert('নোটিফিকেশন অনুমতি দেওয়া হয়নি।');return}await C.LocalNotifications.schedule({notifications:[{id:Math.floor(Date.now()%2147483647),title:'Web Messenger',body:'নোটিফিকেশন পরীক্ষা সফল হয়েছে।',schedule:{at:new Date(Date.now()+1500)}}]});alert('১.৫ সেকেন্ডের মধ্যে টেস্ট নোটিফিকেশন আসার কথা।')}else if('Notification'in window){const p=await Notification.requestPermission();if(p==='granted')new Notification('Web Messenger',{body:'নোটিফিকেশন পরীক্ষা সফল হয়েছে।'});else alert('নোটিফিকেশন অনুমতি নেই।')}else alert('এই পরিবেশে নোটিফিকেশন API নেই।')}catch(e){alert('টেস্ট নোটিফিকেশন ব্যর্থ: '+e.message)}});
+  document.getElementById('mxProShare').addEventListener('click',async()=>{try{if(navigator.share)await navigator.share({title:'Web Messenger',text:'Web Messenger Android app'});else if(navigator.clipboard){await navigator.clipboard.writeText('Web Messenger');alert('শেয়ার টেক্সট কপি হয়েছে।')}else alert('শেয়ার সুবিধা এই পরিবেশে পাওয়া যাচ্ছে না।')}catch(e){if(e.name!=='AbortError')alert('শেয়ার করা যায়নি: '+e.message)}});
+  search.addEventListener('input',()=>{const q=search.value.trim().toLocaleLowerCase();let found=0;if(list){[...list.children].forEach(node=>{const hit=!q||(node.innerText||node.textContent||'').toLocaleLowerCase().includes(q);node.hidden=!hit;if(hit&&q)found++})}status.hidden=!q;status.textContent=q?(found+'টি মেসেজ মিলেছে — বর্তমান লোড হওয়া কথোপকথনে অনুসন্ধান করা হয়েছে।'):''});
+  // Existing renderer replaces message nodes, so reapply active search after each render.
+  if(list&&window.MutationObserver){new MutationObserver(()=>{if(search.value.trim())search.dispatchEvent(new Event('input'))}).observe(list,{childList:true,subtree:false})}
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'&&modal.classList.contains('web-authenticated')){e.preventDefault();search.focus()}if(e.key==='Escape'){settings.hidden=true;if(document.activeElement===search){search.value='';search.dispatchEvent(new Event('input'));search.blur()}}});
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
+})();
+</script>
+
+
+<style id="wm-v3-mobile-polish">
+/* V3: mobile-first polish layered on top of the existing messenger UI */
+:root{--wm-safe-top:env(safe-area-inset-top,0px);--wm-safe-bottom:env(safe-area-inset-bottom,0px)}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior:none}
+body{min-height:100%;min-height:100dvh;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
+button,a,[role=button],input,textarea,select{touch-action:manipulation}
+button{ -webkit-user-select:none;user-select:none }
+input,textarea{font-size:16px!important}
+img,video{max-width:100%;height:auto}
+#chatModal{max-height:100dvh;max-height:calc(100dvh - var(--wm-safe-top));}
+#mxProTools{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-wrap:nowrap;}
+#mxProSearch{min-width:0;flex:1;border:1px solid var(--pro-border,#d9e5e2);border-radius:14px;padding:11px 13px;background:var(--pro-input,#f7faf9);color:inherit;outline:none;}
+#mxProSearch:focus{border-color:#16a085;box-shadow:0 0 0 3px #16a08520}
+.mx-pro-icon{flex:0 0 42px;width:42px;height:42px;border:1px solid var(--pro-border,#d9e5e2);border-radius:14px;background:var(--pro-card,#fff);color:inherit;font-size:18px;cursor:pointer}
+#mxProSearchStatus{padding:0 14px 8px;color:var(--pro-muted,#6b7d79);font-size:12px}
+#mxProSettings{position:absolute;z-index:9999;left:10px;right:10px;top:10px;padding:16px;border-radius:20px;background:var(--pro-card,#fff);color:var(--pro-text,#152a27);border:1px solid var(--pro-border,#d9e5e2);box-shadow:0 16px 50px #001c1730;max-height:70%;overflow:auto}
+.mx-pro-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--pro-border,#e5eeeb);font-size:13px}
+.mx-pro-setting button{border:0;border-radius:12px;padding:9px 12px;background:#087f6b;color:#fff;font-weight:700;cursor:pointer}
+#chatModal.pro-dark{--pro-card:#112b28;--pro-text:#e7f3ef;--pro-muted:#9db6af;--pro-border:#294640;--pro-input:#0b211e;background:#0b211e;color:#e7f3ef;color-scheme:dark}
+#chatModal.pro-dark #mxProSearch{background:#0b211e;color:#e7f3ef;border-color:#294640}
+#chatModal.pro-dark .mx-pro-icon{background:#112b28;color:#e7f3ef;border-color:#294640}
+#chatModal.pro-dark #mxProSettings{background:#112b28;color:#e7f3ef;border-color:#294640}
+@media(max-width:480px){
+ #chatModal{width:100%!important;max-width:100%!important;left:0!important;right:0!important;border-radius:0!important;margin:0!important}
+ #mxProTools{padding:8px 10px;gap:6px}
+ .mx-pro-icon{width:40px;height:40px;flex-basis:40px;border-radius:13px}
+ #mxProSearch{padding:10px 11px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+<script id="wm-v3-native-ux">
+(()=>{
+ const cap=()=>window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform();
+ const init=()=>{
+  if(!cap())return;
+  try{
+   const C=window.Capacitor.Plugins||{};
+   if(C.StatusBar){C.StatusBar.setBackgroundColor({color:'#075e54'}).catch(()=>{});C.StatusBar.setStyle({style:'DARK'}).catch(()=>{});}
+   if(C.SplashScreen)C.SplashScreen.hide().catch(()=>{});
+   if(C.Keyboard){C.Keyboard.setResizeMode({mode:'native'}).catch(()=>{});}
+   if(C.App&&C.App.addListener){C.App.addListener('backButton',({canGoBack})=>{
+    const visible=[...document.querySelectorAll('[role=dialog],.modal,.overlay,#modalOverlay,#mxProSettings')].reverse().find(e=>e&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&!e.hidden);
+    if(visible&&visible.id==='mxProSettings'){visible.hidden=true;return;}
+    if(canGoBack&&history.length>1)history.back();
+    else {const close=document.querySelector('#chatModal .close,#chatModal [aria-label="Close"],#chatModal [data-close]');if(close)close.click();}
+   }).catch(()=>{});}
+  }catch(e){console.debug('Native UX plugin unavailable',e)}
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+
 </body>
 </html>
