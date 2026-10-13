@@ -70,3 +70,8 @@ Build: GitHub Actions → Build Android APK → Run workflow. Output is a debug 
 
 ## V10 (needs patched server.js)
 - User-to-user voice and video calls: open a private chat, tap the call button (voice) or the camera button (video). Both users must be on the paired mobile/web app; Electron users cannot receive these calls.
+
+## V11 fixes
+- Stay logged in is now ON by default; the saved session auto-resumes on app start, after the app returns from background, and after any connection drop. The saved session is cleared only when the server rejects it (or on manual logout), not on network errors.
+- Header: removed the profile, minimize and close buttons. Tapping the title no longer collapses the chat.
+- Tapping a message/photo now shows a WhatsApp-style action bar at the top (Reply, Star, React, Copy, Forward, Edit, Delete, ✕ to cancel) instead of the floating popup menu.

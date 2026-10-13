@@ -125,7 +125,7 @@ button,input,textarea{-webkit-tap-highlight-color:transparent}
 </head>
 <body>
 
-<div id="webPairGate"><section class="wg-card"><h1>Web Messenger</h1><p>মূল সফটওয়্যারের Messenger → Name &amp; ID থেকে একবারের pairing code তৈরি করুন। কোডটি ৫ মিনিটে মেয়াদোত্তীর্ণ হবে এবং একবারই ব্যবহার করা যাবে।</p><form id="webPairForm"><label for="webMachineId">Machine ID</label><input id="webMachineId" autocomplete="off" spellcheck="false" maxlength="128" required placeholder="আপনার সফটওয়্যারের Machine ID"><label for="webPairCode">৮ সংখ্যার pairing code</label><input id="webPairCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" required placeholder="12345678"><label class="wg-stay"><input id="webStayLoggedIn" type="checkbox"> এই ডিভাইসে লগইন চালু রাখুন (Stay logged in)</label><button id="webPairSubmit" type="submit">নিরাপদে সংযুক্ত করুন</button><div id="webPairErr" role="alert"></div></form><div id="webPairNote">এই পেজ HTTPS-এ হোস্ট করতে হবে। পেয়ারিং কোড কাউকে দেবেন না। ওয়েব লগইন করলে একই Machine ID-এর আগের সক্রিয় সেশন বিচ্ছিন্ন হতে পারে।</div></section></div>
+<div id="webPairGate"><section class="wg-card"><h1>Web Messenger</h1><p>মূল সফটওয়্যারের Messenger → Name &amp; ID থেকে একবারের pairing code তৈরি করুন। কোডটি ৫ মিনিটে মেয়াদোত্তীর্ণ হবে এবং একবারই ব্যবহার করা যাবে।</p><form id="webPairForm"><label for="webMachineId">Machine ID</label><input id="webMachineId" autocomplete="off" spellcheck="false" maxlength="128" required placeholder="আপনার সফটওয়্যারের Machine ID"><label for="webPairCode">৮ সংখ্যার pairing code</label><input id="webPairCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" required placeholder="12345678"><label class="wg-stay"><input id="webStayLoggedIn" type="checkbox" checked> এই ডিভাইসে লগইন চালু রাখুন (Stay logged in)</label><button id="webPairSubmit" type="submit">নিরাপদে সংযুক্ত করুন</button><div id="webPairErr" role="alert"></div></form><div id="webPairNote">এই পেজ HTTPS-এ হোস্ট করতে হবে। পেয়ারিং কোড কাউকে দেবেন না। ওয়েব লগইন করলে একই Machine ID-এর আগের সক্রিয় সেশন বিচ্ছিন্ন হতে পারে।</div></section></div>
 <button id="webReopen" type="button">Open Messenger</button>
 
 <!-- ====== Messenger (Support / Group / Private) ====== -->
@@ -169,9 +169,6 @@ button,input,textarea{-webkit-tap-highlight-color:transparent}
     <div class="mx-ti"><b id="mxTitle">Support</b><small id="chatStatus"></small></div><button id="webLogoutBtn" type="button" title="লগআউট">লগআউট</button>
     <button id="mxCallBtn" class="mx-ib" type="button" title="Call support" aria-label="Call support"><svg class="ic"><use href="#mxi-headset"/></svg></button>
     <button id="mxInfoBtn" class="mx-ib" type="button" title="Group info & members" hidden><svg class="ic"><use href="#mxi-info"/></svg></button>
-    <button id="chatNameBtn" class="mx-ib" type="button" title="Name & ID"><svg class="ic"><use href="#mxi-user"/></svg></button>
-    <button id="chatMinBtn" class="mx-ib" type="button" title="Minimize"><svg class="ic" id="chatArrow"><use href="#mxi-minus"/></svg></button>
-    <button id="chatCloseBtn" class="mx-ib" type="button" title="Close"><svg class="ic"><use href="#mxi-x"/></svg></button>
   </div>
 
   <div id="chatBody">
@@ -684,13 +681,30 @@ case 'presence':admin=!!m.admin;emit();break;
 case 'banned':setConn('banned');alert(m.reason||'Chat access disabled');try{ws.close()}catch(_){}break;
 case 'err':if(m.code==='rate')alert('অনেক দ্রুত মেসেজ পাঠাচ্ছেন — একটু অপেক্ষা করুন।');break;
 }}
-async function connect(id,code,token){base=await serverBase();uid=id;setConn('connecting');const url=base.replace(/^https:/,'wss:')+'/ws';ws=new WebSocket(url);ws.addEventListener('open',()=>sendRaw(token?{t:'pair_resume',id,token}:{t:'pair_hello',id,code}));ws.addEventListener('message',ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}if(m.t==='pair_error'){ $('webPairErr').textContent=({invalid_or_expired_code:'কোড ভুল, মেয়াদ শেষ, অথবা ইতিমধ্যে ব্যবহার করা হয়েছে।',rate_limited:'অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।',unknown_machine:'Machine ID পাওয়া যায়নি।',banned:'এই অ্যাকাউন্টে চ্যাট বন্ধ।'}[m.error]||('Pairing ব্যর্থ: '+m.error));setConn('offline');return}handle(m)});ws.addEventListener('close',()=>{if(conn==='connected'||conn==='connecting')setConn('offline');if(!closedByUser&&!manualLogout){$('webPairGate').style.display='grid';$('webPairErr').textContent='সংযোগ বিচ্ছিন্ন হয়েছে। পুনরায় সংযোগের চেষ্টা করুন।';$('chatModal').classList.remove('web-authenticated')}});ws.addEventListener('error',()=>{$('webPairErr').textContent='সার্ভারে সংযোগ করা যায়নি। HTTPS/server URL পরীক্ষা করুন।'});return new Promise((resolve,reject)=>{const started=Date.now();const timer=setInterval(()=>{if(conn==='connected'){clearInterval(timer);$('webPairGate').style.display='none';$('chatModal').classList.add('web-authenticated');resolve({ok:true})}else if(conn==='offline'&&Date.now()-started>1500){clearInterval(timer);reject(Error($('webPairErr').textContent||'Pairing failed'))}else if(Date.now()-started>12000){clearInterval(timer);reject(Error('সার্ভারের উত্তর আসেনি।'))}},100)})}
+let lastPairError='',resuming=false,resumeTimer=null;
+function savedSession(){try{const x=JSON.parse(localStorage.getItem('mxWebSession')||'null');return x&&x.id&&x.token?x:null}catch(_){return null}}
+function dropSavedSession(){try{localStorage.removeItem('mxWebSession')}catch(_){}}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function connect(id,code,token){lastPairError='';base=await serverBase();uid=id;setConn('connecting');const url=base.replace(/^https:/,'wss:')+'/ws';if(ws){const old=ws;ws=null;try{old.close()}catch(_){}}const sock=new WebSocket(url);ws=sock;
+sock.addEventListener('open',()=>sendRaw(token?{t:'pair_resume',id,token}:{t:'pair_hello',id,code}));
+sock.addEventListener('message',ev=>{if(ws!==sock)return;let m;try{m=JSON.parse(ev.data)}catch(_){return}if(m.t==='pair_error'){lastPairError=String(m.error||'error');if(token&&lastPairError!=='rate_limited')dropSavedSession();$('webPairErr').textContent=({invalid_or_expired_code:'কোড ভুল, মেয়াদ শেষ, অথবা ইতিমধ্যে ব্যবহার করা হয়েছে।',rate_limited:'অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।',unknown_machine:'Machine ID পাওয়া যায়নি।',banned:'এই অ্যাকাউন্টে চ্যাট বন্ধ।'}[m.error]||('Pairing ব্যর্থ: '+m.error));setConn('offline');return}handle(m)});
+sock.addEventListener('close',()=>{if(ws!==sock)return;const wasConnected=conn==='connected';if(conn==='connected'||conn==='connecting')setConn('offline');if(closedByUser||manualLogout)return;if(wasConnected&&savedSession()){scheduleResume(800);return}if(!wasConnected&&resuming)return;$('webPairGate').style.display='grid';$('webPairErr').textContent='সংযোগ বিচ্ছিন্ন হয়েছে। পুনরায় সংযোগের চেষ্টা করুন।';$('chatModal').classList.remove('web-authenticated')});
+sock.addEventListener('error',()=>{if(!(savedSession()&&(resuming||conn==='connected')))$('webPairErr').textContent='সার্ভারে সংযোগ করা যায়নি। HTTPS/server URL পরীক্ষা করুন।'});
+return new Promise((resolve,reject)=>{const started=Date.now();const timer=setInterval(()=>{if(ws!==sock){clearInterval(timer);reject(Error('সংযোগ বাতিল হয়েছে।'));return}if(conn==='connected'){clearInterval(timer);$('webPairGate').style.display='none';$('chatModal').classList.add('web-authenticated');resolve({ok:true})}else if(conn==='offline'&&Date.now()-started>1500){clearInterval(timer);reject(Error($('webPairErr').textContent||'Pairing failed'))}else if(Date.now()-started>12000){clearInterval(timer);try{sock.close()}catch(_){}reject(Error('সার্ভারের উত্তর আসেনি।'))}},100)})}
+function scheduleResume(delay){clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{resumeSession()},delay||800)}
+async function resumeSession(){if(resuming||manualLogout||!savedSession())return false;resuming=true;const err=$('webPairErr');
+try{for(let i=0;i<8;i++){const sv=savedSession();if(!sv)break;try{await connect(sv.id,'',sv.token);$('webPairCode').value='';$('webReopen').style.display='none';err.textContent='';return true}catch(ex){if(manualLogout)return false;if(!savedSession())break;if(lastPairError&&lastPairError!=='rate_limited')break;await sleep(Math.min(1000*Math.pow(2,i),15000))}}}finally{resuming=false}
+if(manualLogout)return false;
+$('webPairGate').style.display='grid';$('chatModal').classList.remove('web-authenticated');
+err.textContent=savedSession()?'সার্ভারের সাথে সংযোগ হচ্ছে না। ইন্টারনেট ফিরলে আবার চেষ্টা হবে।':'সংরক্ষিত লগইনের মেয়াদ শেষ। নতুন pairing code দিয়ে প্রবেশ করুন।';return false}
+window.addEventListener('online',()=>{if(conn!=='connected'&&conn!=='connecting')resumeSession()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&conn!=='connected'&&conn!=='connecting')resumeSession()});
 function upload(file,caption,opts){return new Promise(async resolve=>{try{if(!file||!uploadKey||conn!=='connected')return resolve({ok:false,error:'সংযোগ নেই'});if(file.size>150*1024*1024)return resolve({ok:false,error:'সর্বোচ্চ ১৫০ MB ফাইল পাঠানো যাবে'});const headers={'Content-Type':'application/octet-stream','X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-File-Name':encodeURIComponent(file.name)};if(caption)headers['X-Caption']=encodeURIComponent(caption.slice(0,500));if(opts?.scope){headers['X-Scope']=opts.scope;headers['X-Peer']=opts.peer}const r=await fetch(base+'/upload',{method:'POST',headers,body:file});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)return resolve({ok:false,error:j.error||('Upload failed '+r.status)});if(!opts?.scope){const x={id:String(j.mid),from:'me',text:String(j.text||caption||('📎 '+file.name)),ts:Number(j.ts)||Date.now(),status:'sent',file:cleanFile(j.file)};messages.push(x);emit()}resolve({ok:true})}catch(e){resolve({ok:false,error:e.message||'Upload failed'})}})}
 window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const url=base+'/f/'+encodeURIComponent(fid)+'?dl=1';if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.download=name||'download';document.body.appendChild(a);a.click();a.remove();return{ok:true}}const r=await fetch(url);if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ ('+r.status+')'};const b=await r.blob(),a=document.createElement('a'),obj=URL.createObjectURL(b);a.href=obj;a.download=name||'download';a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),60000);return{ok:true}}catch(e){return{ok:false,error:e.message||'ফাইল ডাউনলোড ব্যর্থ'}}},fileBlob:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));return r.ok?await r.blob():null}catch(_){return null}},sendBlob:(file,opts)=>upload(file,'',opts),previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
 $('mxProtocolFile').addEventListener('change',async e=>{const f=e.target.files?.[0],p=pendingFile;pendingFile=null;if(!p)return;if(!f)return p.resolve({ok:false,canceled:true});const r=await upload(f,p.caption,p.opts);p.resolve(r)});
 $('webPairForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('webPairSubmit'),err=$('webPairErr');err.textContent='';b.disabled=true;const id=$('webMachineId').value.trim(),code=$('webPairCode').value.trim();if(!/^[A-Za-z0-9_-]{6,128}$/.test(id)||!/^\d{8}$/.test(code)){err.textContent='Machine ID বা ৮ সংখ্যার কোড সঠিক নয়।';b.disabled=false;return}try{await connect(id,code);$('webPairCode').value='';$('webReopen').style.display='none';if(!$('webStayLoggedIn').checked){try{localStorage.removeItem('mxWebSession')}catch(_){}}}catch(ex){err.textContent=ex.message||'সংযোগ ব্যর্থ'}finally{b.disabled=false}});
-$('webLogoutBtn').addEventListener('click',()=>{manualLogout=true;try{if(ws&&ws.readyState===WebSocket.OPEN)sendRaw({t:'pair_logout',id:uid,token:sessionToken});localStorage.removeItem('mxWebSession')}catch(_){}closedByUser=true;try{ws?.close(1000,'logout')}catch(_){}ws=null;uid='';uploadKey='';sessionToken='';messages=[];setConn('offline');$('chatModal').classList.remove('web-authenticated');$('webPairGate').style.display='grid';$('webPairErr').textContent='আপনি লগআউট করেছেন। আবার প্রবেশ করতে pairing code দিন।';$('webPairCode').value='';$('webReopen').style.display='none';manualLogout=false;closedByUser=false;});
-(async()=>{try{const saved=JSON.parse(localStorage.getItem('mxWebSession')||'null');if(saved&&saved.stay&&saved.id&&saved.token){$('webMachineId').value=saved.id;$('webStayLoggedIn').checked=true;await connect(saved.id,'',saved.token);$('webPairCode').value='';$('webReopen').style.display='none'}}catch(e){try{localStorage.removeItem('mxWebSession')}catch(_){}$('webPairErr').textContent='সংরক্ষিত লগইন যাচাই করা যায়নি। নতুন pairing code দিয়ে প্রবেশ করুন।'}})();
+$('webLogoutBtn').addEventListener('click',()=>{manualLogout=true;clearTimeout(resumeTimer);try{if(ws&&ws.readyState===WebSocket.OPEN)sendRaw({t:'pair_logout',id:uid,token:sessionToken});localStorage.removeItem('mxWebSession')}catch(_){}closedByUser=true;try{ws?.close(1000,'logout')}catch(_){}ws=null;uid='';uploadKey='';sessionToken='';messages=[];setConn('offline');$('chatModal').classList.remove('web-authenticated');$('webPairGate').style.display='grid';$('webPairErr').textContent='আপনি লগআউট করেছেন। আবার প্রবেশ করতে pairing code দিন।';$('webPairCode').value='';$('webReopen').style.display='none';manualLogout=false;closedByUser=false;});
+(async()=>{const sv=savedSession();if(!sv)return;$('webMachineId').value=sv.id;$('webStayLoggedIn').checked=true;$('webPairErr').textContent='সংরক্ষিত লগইন দিয়ে প্রবেশ করা হচ্ছে…';await resumeSession()})();
 $('webReopen').addEventListener('click',()=>{$('chatModal').classList.add('web-authenticated');$('webReopen').style.display='none'});
 const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTimeout(()=>{$('webReopen').style.display='block'},0)});
 })();
@@ -1276,7 +1290,13 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const bar = $("mxSelectBar");
     if (bar) bar.hidden = true;
   }
-  function hideMessageContext() { $("mxContextMenu").hidden = true; S.contextItem = null; }
+  function hideMessageContext() {
+    const m = $("mxContextMenu"); if (m) m.hidden = true;
+    S.contextItem = null; S.selected = null;
+    modal.classList.remove("wm-selecting");
+    const rs = document.getElementById("wmReactStrip"); if (rs) rs.hidden = true;
+    list.querySelectorAll(".mx-m.selected").forEach((r) => r.classList.remove("selected"));
+  }
   const WM_EMO = ["👍", "❤️", "😆", "😮", "😢", "😡"];
   const wmScope = () => (S.mode === "group" ? { scope: "group", gid: S.gid } : { scope: "dm", peerId: S.peer });
   function wmExtras(it, menu) {
@@ -1295,19 +1315,67 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const ok = !it.local && S.mode !== "admin" && (it.mid || it.id);
     row.hidden = !ok; ed.hidden = !(ok && it.mine && it.text && Date.now() - it.ts < 9e5);
   }
-  function showMessageContext(it, x, y) {
-    S.selected = it.key; S.contextItem = it;
-    const menu = $("mxContextMenu"); menu.hidden = false;
-    $("mxContextDelete").hidden = !(it.mine || it.canDel || it.local); wmExtras(it, menu);
-    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 165)) + "px";
-    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 190)) + "px";
+  const WM_ICON = {
+    close: '<path d="M18 6 6 18M6 6l12 12"/>',
+    reply: '<path d="M9 14 4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>',
+    star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+    react: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    fwd: '<path d="m15 14 5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    del: '<path d="M3 6h18"/><path d="M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>'
+  };
+  function wmBtn(id, key, title) {
+    const b = document.createElement("button"); b.type = "button"; b.id = id; b.title = title; b.setAttribute("aria-label", title);
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + WM_ICON[key] + "</svg>";
+    return b;
+  }
+  const wmRow = () => list.querySelector(".mx-m.selected") || S.contextRow || null;
+  function wmEnsureBar() {
+    let bar = document.getElementById("wmSelBar"); if (bar) return bar;
+    bar = document.createElement("div"); bar.id = "wmSelBar";
+    const sp = document.createElement("span"); sp.className = "wm-sel-sp";
+    bar.append(wmBtn("wmSelClose", "close", "Cancel"), sp, wmBtn("wmSelReply", "reply", "Reply"), wmBtn("wmSelStar", "star", "Star"), wmBtn("wmSelReact", "react", "React"),
+      wmBtn("wmSelCopy", "copy", "Copy"), wmBtn("wmSelFwd", "fwd", "Forward"), wmBtn("wmSelEdit", "edit", "Edit"), wmBtn("wmSelDel", "del", "Delete"));
+    $("mxHead").appendChild(bar);
+    const strip = document.createElement("div"); strip.id = "wmReactStrip"; strip.hidden = true;
+    WM_EMO.forEach((e) => { const b = document.createElement("button"); b.type = "button"; b.textContent = e; b.dataset.e = e; strip.appendChild(b); });
+    $("mxListWrap").appendChild(strip);
+    strip.addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (!b) return; ev.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (x) sendProto({ t: "msg_react", ...wmScope(), mid: x.mid || x.id, emoji: b.dataset.e }); });
+    $("wmSelClose").addEventListener("click", (e) => { e.stopPropagation(); hideMessageContext(); });
+    $("wmSelReply").addEventListener("click", (e) => { e.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (x && window.wmV6) window.wmV6.reply(x.text || ""); });
+    $("wmSelFwd").addEventListener("click", (e) => { e.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (x && window.wmV6) window.wmV6.forward(x.text || ""); });
+    $("wmSelStar").addEventListener("click", (e) => { e.stopPropagation(); const r = wmRow(); hideMessageContext(); if (r && window.wmV6) window.wmV6.star(r); });
+    $("wmSelReact").addEventListener("click", (e) => { e.stopPropagation(); strip.hidden = !strip.hidden; });
+    $("wmSelCopy").addEventListener("click", async (e) => { e.stopPropagation(); const it = S.contextItem; hideMessageContext(); if (!it) return; try { await navigator.clipboard.writeText(it.text || (it.file && it.file.name) || ""); toast("Copied"); } catch (_) { toast("Could not copy"); } });
+    $("wmSelEdit").addEventListener("click", (e) => { e.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (!x) return; const t = prompt("Edit message", x.text || ""); if (t && t.trim() && t.trim() !== x.text) sendProto({ t: "msg_edit", ...wmScope(), mid: x.mid || x.id, text: t.trim() }); });
+    $("wmSelDel").addEventListener("click", async (e) => { e.stopPropagation(); const it = S.contextItem; hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) await deleteItem(it); });
+    return bar;
+  }
+  function wmShowBar(it, row) {
+    wmEnsureBar();
+    const hasText = !!(it.text && String(it.text).trim());
+    const canReact = !it.local && S.mode !== "admin" && !!(it.mid || it.id);
+    $("wmSelReply").hidden = !hasText; $("wmSelFwd").hidden = !hasText;
+    $("wmSelCopy").hidden = !(hasText || it.file);
+    $("wmSelReact").hidden = !canReact;
+    $("wmSelEdit").hidden = !(canReact && it.mine && it.text && Date.now() - it.ts < 9e5);
+    $("wmSelDel").hidden = !(it.mine || it.canDel || it.local);
+    $("wmSelStar").classList.toggle("on", !!(row && window.wmV6 && window.wmV6.isStar(row)));
+    modal.classList.add("wm-selecting");
+  }
+  function showMessageContext(it, x, y, row) {
+    hideMessageContext();
+    S.selected = it.key; S.contextItem = it; S.contextRow = row || null;
+    if (row) row.classList.add("selected");
+    wmShowBar(it, row);
     updateSelectionBar();
   }
   $("mxDeleteSelected").addEventListener("click", async () => { const it = selectedItem(); hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) { await deleteItem(it); S.selected = null; updateSelectionBar(); } });
   $("mxCancelSelect").addEventListener("click", () => { S.selected = null; hideMessageContext(); renderMessages(); });
   $("mxContextCopy").addEventListener("click", async () => { const it = S.contextItem || selectedItem(); hideMessageContext(); if (!it) return; try { await navigator.clipboard.writeText(it.text || (it.file && it.file.name) || ""); toast("Copied"); } catch (_) { toast("Could not copy"); } });
   $("mxContextDelete").addEventListener("click", async () => { const it = S.contextItem || selectedItem(); hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) { await deleteItem(it); S.selected = null; updateSelectionBar(); } });
-  document.addEventListener("click", e => { if (!e.target.closest("#mxContextMenu")) hideMessageContext(); });
+  document.addEventListener("click", e => { if (!e.target.closest("#mxContextMenu,#wmSelBar,#wmReactStrip")) hideMessageContext(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") { hideMessageContext(); S.selected = null; updateSelectionBar(); } });
 
   function renderMessages() {
@@ -1329,9 +1397,9 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
       if (it.sys) { list.appendChild(el("div", "mx-sys", (it.ann ? "📢 " : "") + it.text)); return; }
       const first = !grp(p, it), last = !grp(it, n);
       const row = el("div", "mx-m " + (it.mine ? "me" : "other") + (first ? " first" : "") + (last ? " last" : "") + (S.selected === it.key ? " selected" : ""));
-      row.tabIndex = 0; row.setAttribute("aria-label", "Message. Click or tap for Copy and Delete actions; right-click for actions.");
-      row.addEventListener("click", e => { if (e.target.closest("a,button")) return; e.stopPropagation(); showMessageContext(it, e.clientX || 16, e.clientY || 16); });
-      row.addEventListener("contextmenu", e => { e.preventDefault(); showMessageContext(it, e.clientX, e.clientY); });
+      row.tabIndex = 0; row.setAttribute("aria-label", "Message. Tap to select; actions appear at the top.");
+      row.addEventListener("click", e => { if (e.target.closest("a,button")) return; e.stopPropagation(); if (S.contextItem && S.contextItem.key === it.key) { hideMessageContext(); return; } showMessageContext(it, e.clientX || 16, e.clientY || 16, row); });
+      row.addEventListener("contextmenu", e => { e.preventDefault(); showMessageContext(it, e.clientX, e.clientY, row); });
       if (!it.mine && S.mode === "group") {
         const dmable = !!curGroup() && it.fromId;
         const pic = el("div", "mx-pic" + (last ? "" : " ph") + (dmable && last ? " link" : ""), initial(it.name)); pic.style.background = colorOf(it.from);
@@ -1410,7 +1478,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     if (!id || id === S.uid) return;
     S.info = false; setMode("dm"); $("dmPeerId").value = id; openDm();
   }
-  function setArrow(min) { $("chatArrow").firstElementChild.setAttribute("href", min ? "#mxi-plus" : "#mxi-minus"); }
+  function setArrow(min) {}
   function setOpen(v) {
     S.open = v;
     if (v) {
@@ -1423,7 +1491,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
   }
   try { window.electronAPI?.onChatWindowReopen?.(() => setOpen(true)); } catch (_) {}
   function setMin(v) {
-    S.min = v; modal.classList.toggle("minimized", v); setArrow(v);
+    v = false; S.min = v; modal.classList.toggle("minimized", v); setArrow(v);
     if (!v) { if (S.mode === "group") S.unreadGid[S.gid] = 0; render(); list.scrollTop = list.scrollHeight; setTimeout(() => input.focus(), 60); }
     else render();
   }
@@ -1588,11 +1656,7 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
 
 
 
-  $("mxHead").addEventListener("click", (e) => { if (e.target.closest("button")) return; if (S.open) setMin(!S.min); });
-  $("chatMinBtn").addEventListener("click", (e) => { e.stopPropagation(); if (S.open) setMin(!S.min); });
-  $("chatCloseBtn").addEventListener("click", (e) => { e.stopPropagation(); setOpen(false); });
   $("mxInfoBtn").addEventListener("click", (e) => { e.stopPropagation(); S.info = !S.info; S.create = false; if (S.info && protoOK()) { sendProto({ t: "groups_list" }); sendProto({ t: "users_list" }); } render(); });
-  $("chatNameBtn").addEventListener("click", (e) => { e.stopPropagation(); const b = $("mxProfile"); b.hidden = !b.hidden; if (!b.hidden) { const n=$("mxServerUsername"); if(n)n.textContent=String((S.st && S.st.username)||"User"); const a=$("mxProfileAvatar"); if(a)a.textContent=String((S.st&&S.st.username)||"U").trim().charAt(0).toUpperCase()||"U"; } });
   $("mxCopyId").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("mxMyId").textContent); toast("ID copied"); } catch (_) { toast("Could not copy"); } });
   sendBtn.addEventListener("click", doSend);
   input.addEventListener("input", grow);
@@ -1818,9 +1882,10 @@ input.parentElement.parentElement.insertBefore(bar,input.parentElement);
 const setQuote=q=>{quote=q;bar.style.display=q?'flex':'none';bar.firstChild.textContent=q?'↪ '+q.replace(/\n/g,' '):''};
 bar.lastChild.onclick=()=>setQuote('');
 function add(id,label,fn){if($(id))return;const b=document.createElement('button');b.id=id;b.type='button';b.textContent=label;b.addEventListener('click',e=>{e.stopPropagation();const row=selRow();menu.hidden=true;if(row)fn(row)});menu.insertBefore(b,menu.firstChild)}
-add('wmFwd','Forward',row=>{const t=rawText(row);if(!t)return;fwd=true;input.value='⤼ Forwarded\n'+t;input.dispatchEvent(new Event('input'));const b=document.querySelector('#chatModal .mx-dir-btn[data-directory="chat"]');if(b)b.click();input.focus();alert('এখন যে চ্যাটে পাঠাতে চান সেটি খুলে Send চাপুন।')});
-add('wmStar','Star',row=>{const s=stars(),k=sig(row);s.has(k)?s.delete(k):s.add(k);saveStars(s);row.classList.toggle('wm-star',s.has(k))});
-add('wmReply','Reply',row=>{const t=rawText(row).replace(/^↪[^\n]*\n—\n/,'').slice(0,100);if(!t)return;setQuote(t);input.focus()});
+function fwdFn(t){if(!t)return;fwd=true;input.value='⤼ Forwarded\n'+t;input.dispatchEvent(new Event('input'));const b=document.querySelector('#chatModal .mx-dir-btn[data-directory="chat"]');if(b)b.click();input.focus();alert('এখন যে চ্যাটে পাঠাতে চান সেটি খুলে Send চাপুন।')}
+function starFn(row){const s=stars(),k=sig(row);s.has(k)?s.delete(k):s.add(k);saveStars(s);row.classList.toggle('wm-star',s.has(k))}
+function replyFn(t){t=String(t||'').replace(/^↪[^\n]*\n—\n/,'').slice(0,100);if(!t)return;setQuote(t);input.focus()}
+window.wmV6={reply:replyFn,forward:fwdFn,star:starFn,isStar:row=>stars().has(sig(row))};
 // Send: prepend quote before the app's own handlers read input.value
 function inject(){if(quote&&input.value.trim()&&!input.value.startsWith('↪ ')){input.value='↪ '+quote.replace(/\n/g,' ')+'\n—\n'+input.value}}
 const afterSend=()=>setTimeout(()=>{if(!input.value.trim())setQuote('')},50);
@@ -1911,6 +1976,25 @@ list.addEventListener('touchend',e=>{if(!srow)return;const dx=e.changedTouches[0
 #wmReactRow button{font-size:28px}
 #mxContextMenu>button{padding:14px 18px!important;font-size:16px!important}
 }
+</style>
+
+<style id="wm-v11-fixes">
+#mxContextMenu{display:none!important}
+#mxListWrap{position:relative}
+#wmSelBar{display:none;align-items:center;gap:2px;width:100%;min-height:44px}
+#chatModal.wm-selecting #mxHead>*:not(#wmSelBar){display:none!important}
+#chatModal.wm-selecting #wmSelBar{display:flex}
+#wmSelBar button{background:transparent!important;border:0!important;box-shadow:none!important;color:#0084ff!important;width:42px;height:42px;min-width:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0!important;margin:0!important;flex:none}
+#wmSelBar button:active{background:rgba(0,132,255,.16)!important}
+#wmSelBar button[hidden]{display:none!important}
+#wmSelBar .wm-sel-sp{flex:1}
+#wmSelBar button.on svg{fill:#f5b301;stroke:#f5b301}
+#chatModal.pro-dark #wmSelBar button{color:#e4e6eb!important}
+#chatModal .mx-m.selected{background:rgba(0,132,255,.14)!important;outline:0!important}
+#wmReactStrip{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:2px;background:#fff;border-radius:999px;padding:6px 10px;box-shadow:0 4px 18px rgba(0,0,0,.28)}
+#wmReactStrip[hidden]{display:none}
+#wmReactStrip button{background:none!important;border:0!important;font-size:26px;line-height:1;padding:2px 5px!important;cursor:pointer;width:auto!important}
+#chatModal.pro-dark #wmReactStrip{background:#242526}
 </style>
 </body>
 </html>
