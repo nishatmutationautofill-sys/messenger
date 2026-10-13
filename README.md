@@ -58,3 +58,15 @@ Build: GitHub Actions → Build Android APK → Run workflow. Output is a debug 
 ## V7 (needs the patched server.js)
 - Typing indicator (DM + groups), delivered (✓✓ grey) and read (✓✓ blue) receipts for private chats.
 - Requires the updated server.js; with the old server these packets are simply ignored and the app behaves as in v6.
+
+## V8 (needs patched server.js)
+- Facebook Messenger-style look (blue/grey bubbles, white header, pill composer, dark mode).
+- Reactions (👍❤️😆😮😢😡) from the message menu, shown as chips under bubbles; Edit own text messages within 15 minutes ("edited" label).
+
+## V9
+- Full-screen mobile layout with larger touch targets.
+- Voice messages (mic button, recorded with MediaRecorder, sent as voice-*.webm/m4a files; works with the existing upload path).
+- Video call button in the Support tab (user<->admin only; admin.html must support video).
+
+## V10 (needs patched server.js)
+- User-to-user voice and video calls: open a private chat, tap the call button (voice) or the camera button (video). Both users must be on the paired mobile/web app; Electron users cannot receive these calls.

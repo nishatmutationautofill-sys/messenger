@@ -675,7 +675,7 @@ function notifyProtocol(m){protocolHandlers.slice().forEach(fn=>{try{fn(m)}catch
 function setConn(v){conn=v;emit()}
 async function serverBase(){const r=await fetch(FIRESTORE,{cache:'no-store'});if(!r.ok)throw Error('Firestore থেকে chat server URL পাওয়া যায়নি।');const j=await r.json();const u=j.fields?.serverUrl?.stringValue;if(!u||!/^https:\/\//i.test(u))throw Error('config/chat-এর serverUrl সঠিক নয়।');return u.replace(/\/+$/,'')}
 function handle(m){if(!m||typeof m.t!=='string')return;
-if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal','typing','dm_delivered','dm_read'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
+if(['pair_code','pair_error','users_list','friend_request','friend_request_sent','friend_accepted','friend_error','social','group_history','group_msg','group_deleted','dm_history','dm_msg','dm_sent','dm_deleted','dm_error','delete_ack','groups_list','group_created','group_invite','group_invite_sent','group_removed','group_notice','group_error','call_signal','typing','dm_delivered','dm_read','msg_reaction','msg_edited','edit_error'].includes(m.t)){if(m.message)m.message={...m.message,file:cleanFile(m.message.file)};if(Array.isArray(m.messages))m.messages=m.messages.map(x=>({...x,file:cleanFile(x.file)}));notifyProtocol(m)}
 switch(m.t){case 'welcome':uid=String(m.uid||m.userId||'');uploadKey=String(m.uploadKey||'');sessionToken=String(m.sessionToken||'');if(sessionToken&&$('webStayLoggedIn').checked){try{localStorage.setItem('mxWebSession',JSON.stringify({id:uid,token:sessionToken,stay:true}))}catch(_){}}admin=!!m.admin;username=String(m.username||m.displayName||m.name||m.profile?.username||m.user?.username||username||'User').slice(0,64);messages=(m.history||[]).map(cleanSupport);unread=0;updateServerProfile();setConn('connected');if(Array.isArray(m.friends)||Array.isArray(m.requests))notifyProtocol({t:'welcome',uid,friends:m.friends||[],requests:m.requests||[]});notifyProtocol({t:'group_history',gid:'public',messages:m.groupHistory||[]});sendRaw({t:'groups_list'});sendRaw({t:'users_list'});break;
 case 'msg':{const x=cleanSupport({...m,from:m.kind==='announce'?'announce':'admin'});if(!messages.some(y=>y.id===x.id))messages.push(x);unread++;emit();break}
 case 'ack':{const i=messages.findIndex(x=>x.cid===m.cid);if(i>=0){messages[i].id=String(m.mid);messages[i].status='sent';messages[i].ts=Number(m.ts)||Date.now()}emit();break}
@@ -686,7 +686,7 @@ case 'err':if(m.code==='rate')alert('অনেক দ্রুত মেসে�
 }}
 async function connect(id,code,token){base=await serverBase();uid=id;setConn('connecting');const url=base.replace(/^https:/,'wss:')+'/ws';ws=new WebSocket(url);ws.addEventListener('open',()=>sendRaw(token?{t:'pair_resume',id,token}:{t:'pair_hello',id,code}));ws.addEventListener('message',ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}if(m.t==='pair_error'){ $('webPairErr').textContent=({invalid_or_expired_code:'কোড ভুল, মেয়াদ শেষ, অথবা ইতিমধ্যে ব্যবহার করা হয়েছে।',rate_limited:'অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।',unknown_machine:'Machine ID পাওয়া যায়নি।',banned:'এই অ্যাকাউন্টে চ্যাট বন্ধ।'}[m.error]||('Pairing ব্যর্থ: '+m.error));setConn('offline');return}handle(m)});ws.addEventListener('close',()=>{if(conn==='connected'||conn==='connecting')setConn('offline');if(!closedByUser&&!manualLogout){$('webPairGate').style.display='grid';$('webPairErr').textContent='সংযোগ বিচ্ছিন্ন হয়েছে। পুনরায় সংযোগের চেষ্টা করুন।';$('chatModal').classList.remove('web-authenticated')}});ws.addEventListener('error',()=>{$('webPairErr').textContent='সার্ভারে সংযোগ করা যায়নি। HTTPS/server URL পরীক্ষা করুন।'});return new Promise((resolve,reject)=>{const started=Date.now();const timer=setInterval(()=>{if(conn==='connected'){clearInterval(timer);$('webPairGate').style.display='none';$('chatModal').classList.add('web-authenticated');resolve({ok:true})}else if(conn==='offline'&&Date.now()-started>1500){clearInterval(timer);reject(Error($('webPairErr').textContent||'Pairing failed'))}else if(Date.now()-started>12000){clearInterval(timer);reject(Error('সার্ভারের উত্তর আসেনি।'))}},100)})}
 function upload(file,caption,opts){return new Promise(async resolve=>{try{if(!file||!uploadKey||conn!=='connected')return resolve({ok:false,error:'সংযোগ নেই'});if(file.size>150*1024*1024)return resolve({ok:false,error:'সর্বোচ্চ ১৫০ MB ফাইল পাঠানো যাবে'});const headers={'Content-Type':'application/octet-stream','X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-File-Name':encodeURIComponent(file.name)};if(caption)headers['X-Caption']=encodeURIComponent(caption.slice(0,500));if(opts?.scope){headers['X-Scope']=opts.scope;headers['X-Peer']=opts.peer}const r=await fetch(base+'/upload',{method:'POST',headers,body:file});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)return resolve({ok:false,error:j.error||('Upload failed '+r.status)});if(!opts?.scope){const x={id:String(j.mid),from:'me',text:String(j.text||caption||('📎 '+file.name)),ts:Number(j.ts)||Date.now(),status:'sent',file:cleanFile(j.file)};messages.push(x);emit()}resolve({ok:true})}catch(e){resolve({ok:false,error:e.message||'Upload failed'})}})}
-window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const url=base+'/f/'+encodeURIComponent(fid)+'?dl=1';if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.download=name||'download';document.body.appendChild(a);a.click();a.remove();return{ok:true}}const r=await fetch(url);if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ ('+r.status+')'};const b=await r.blob(),a=document.createElement('a'),obj=URL.createObjectURL(b);a.href=obj;a.download=name||'download';a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),60000);return{ok:true}}catch(e){return{ok:false,error:e.message||'ফাইল ডাউনলোড ব্যর্থ'}}},previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
+window.chatAPI={userId:'',get:async()=>snapshot(),onState(fn){if(typeof fn==='function'){stateHandlers.push(fn);fn(snapshot())}},onProtocolMessage(fn){if(typeof fn==='function')protocolHandlers.push(fn)},onDeleted(fn){if(typeof fn==='function')deletedHandlers.push(fn)},sendProtocol:async packet=>sendRaw(packet)?{ok:true}:{ok:false,error:'offline'},send:async text=>{const t=String(text||'').trim().slice(0,2000);if(!t)return{ok:false,error:'খালি মেসেজ'};const cid=crypto.randomUUID?crypto.randomUUID():String(Date.now());const x={id:'c_'+cid,cid,from:'me',text:t,ts:Date.now(),status:'pending'};messages.push(x);emit();return sendRaw({t:'msg',cid,text:t})?{ok:true}:{ok:false,error:'offline'}},setName:async name=>{username=String(name||'User').slice(0,24);sendRaw({t:'rename',name:username});emit();return{ok:true,username}},markRead:()=>{unread=0;emit()},deleteMessage:async mid=>{if(!uploadKey)return{ok:false,error:'offline'};try{const r=await fetch(base+'/delete-msg',{method:'DELETE',headers:{'X-Chat-Uid':uid,'X-Upload-Key':uploadKey,'X-Msg-Id':mid}});const j=await r.json().catch(()=>({}));return r.ok&&j.ok?{ok:true}:{ok:false,error:j.error||'Delete failed'}}catch(e){return{ok:false,error:e.message}}},sendFile:(caption,opts)=>new Promise(resolve=>{pendingFile={caption,opts,resolve};const i=$('mxProtocolFile');i.value='';i.click()}),saveFile:async(fid,name)=>{try{const url=base+'/f/'+encodeURIComponent(fid)+'?dl=1';if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.download=name||'download';document.body.appendChild(a);a.click();a.remove();return{ok:true}}const r=await fetch(url);if(!r.ok)return{ok:false,error:'ফাইল ডাউনলোড ব্যর্থ ('+r.status+')'};const b=await r.blob(),a=document.createElement('a'),obj=URL.createObjectURL(b);a.href=obj;a.download=name||'download';a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),60000);return{ok:true}}catch(e){return{ok:false,error:e.message||'ফাইল ডাউনলোড ব্যর্থ'}}},fileBlob:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));return r.ok?await r.blob():null}catch(_){return null}},sendBlob:(file,opts)=>upload(file,'',opts),previewFile:async fid=>{try{const r=await fetch(base+'/f/'+encodeURIComponent(fid));if(!r.ok)return null;const b=await r.blob();if(!/^image\/(jpeg|png|gif|webp)$/.test(b.type)||b.size>8*1024*1024)return null;return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(_){return null}}};
 $('mxProtocolFile').addEventListener('change',async e=>{const f=e.target.files?.[0],p=pendingFile;pendingFile=null;if(!p)return;if(!f)return p.resolve({ok:false,canceled:true});const r=await upload(f,p.caption,p.opts);p.resolve(r)});
 $('webPairForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('webPairSubmit'),err=$('webPairErr');err.textContent='';b.disabled=true;const id=$('webMachineId').value.trim(),code=$('webPairCode').value.trim();if(!/^[A-Za-z0-9_-]{6,128}$/.test(id)||!/^\d{8}$/.test(code)){err.textContent='Machine ID বা ৮ সংখ্যার কোড সঠিক নয়।';b.disabled=false;return}try{await connect(id,code);$('webPairCode').value='';$('webReopen').style.display='none';if(!$('webStayLoggedIn').checked){try{localStorage.removeItem('mxWebSession')}catch(_){}}}catch(ex){err.textContent=ex.message||'সংযোগ ব্যর্থ'}finally{b.disabled=false}});
 $('webLogoutBtn').addEventListener('click',()=>{manualLogout=true;try{if(ws&&ws.readyState===WebSocket.OPEN)sendRaw({t:'pair_logout',id:uid,token:sessionToken});localStorage.removeItem('mxWebSession')}catch(_){}closedByUser=true;try{ws?.close(1000,'logout')}catch(_){}ws=null;uid='';uploadKey='';sessionToken='';messages=[];setConn('offline');$('chatModal').classList.remove('web-authenticated');$('webPairGate').style.display='grid';$('webPairErr').textContent='আপনি লগআউট করেছেন। আবার প্রবেশ করতে pairing code দিন।';$('webPairCode').value='';$('webReopen').style.display='none';manualLogout=false;closedByUser=false;});
@@ -902,6 +902,12 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
       }
       case "dm_delivered": { const it = dmList(m.peerId).find((x) => x.mid === m.mid || x.id === m.mid); if (it) it.delivered = true; break; }
       case "dm_read": dmList(m.peerId).forEach((x) => { if (x.mine && (!m.upTo || x.ts <= m.upTo)) { x.read = true; x.delivered = true; } }); break;
+      case "msg_reaction": case "msg_edited": {
+        const hit = [].concat(Object.values(S.gm), Object.values(S.dm)).flat().find((x) => x && (x.mid === m.mid || x.id === m.mid));
+        if (hit) { if (m.t === "msg_reaction") hit.reactions = m.reactions || {}; else { hit.text = m.text; hit.edited = m.edited; } }
+        break;
+      }
+      case "edit_error": S.notice = "Messages can only be edited within 15 minutes."; break;
       case "dm_error": S.notice = "Could not open private chat. Check the ID — you must be friends or members of the same group."; break;
       case "err": if (m.code === "rate") S.notice = "You are sending messages too quickly. Please try again shortly."; break;
       default: try { console.debug("[chat] proto", m); } catch (_) {}
@@ -1002,7 +1008,28 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
       else saveFile(f);
     }); return c;
   }
+  function wmVoiceNode(f) {
+    const w = document.createElement("div"); w.className = "wm-voice";
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "▶";
+    const bar = document.createElement("div"); bar.className = "wm-vbar"; const fill = document.createElement("i"); bar.appendChild(fill);
+    const d = document.createElement("span"); d.textContent = "🎤 0s"; w.append(b, bar, d); let a = null;
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!a) {
+        b.textContent = "…";
+        try {
+          const raw = await api.fileBlob(f.id); if (!raw) throw new Error("x");
+          a = new Audio(URL.createObjectURL(new Blob([raw], { type: /m4a/.test(f.name) ? "audio/mp4" : "audio/webm" })));
+          a.ontimeupdate = () => { d.textContent = "🎤 " + Math.floor(a.currentTime) + "s"; if (isFinite(a.duration) && a.duration) fill.style.width = (a.currentTime / a.duration * 100) + "%"; };
+          a.onended = () => { b.textContent = "▶"; fill.style.width = "0"; };
+        } catch (_) { b.textContent = "▶"; flash("Could not load voice message."); return; }
+      }
+      if (a.paused) { a.play(); b.textContent = "⏸"; } else { a.pause(); b.textContent = "▶"; }
+    });
+    return w;
+  }
   function fileNode(f) {
+    if (/^voice-\d+\.(webm|m4a|ogg)$/.test(f.name || "")) return wmVoiceNode(f);
     if (f.img) {
       const im = el("img", "mx-img"); im.alt = f.name; im.title = "View larger";
       im.addEventListener("click", () => openLb(f));
@@ -1250,12 +1277,30 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     if (bar) bar.hidden = true;
   }
   function hideMessageContext() { $("mxContextMenu").hidden = true; S.contextItem = null; }
+  const WM_EMO = ["👍", "❤️", "😆", "😮", "😢", "😡"];
+  const wmScope = () => (S.mode === "group" ? { scope: "group", gid: S.gid } : { scope: "dm", peerId: S.peer });
+  function wmExtras(it, menu) {
+    let row = document.getElementById("wmReactRow");
+    if (!row) {
+      row = document.createElement("div"); row.id = "wmReactRow";
+      WM_EMO.forEach((e) => { const b = document.createElement("button"); b.type = "button"; b.textContent = e; b.dataset.e = e; row.appendChild(b); });
+      menu.insertBefore(row, menu.firstChild);
+      row.addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (!b) return; ev.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (x) sendProto({ t: "msg_react", ...wmScope(), mid: x.mid || x.id, emoji: b.dataset.e }); });
+    }
+    let ed = document.getElementById("wmEdit");
+    if (!ed) {
+      ed = document.createElement("button"); ed.id = "wmEdit"; ed.type = "button"; ed.textContent = "Edit"; menu.appendChild(ed);
+      ed.addEventListener("click", (ev) => { ev.stopPropagation(); const x = S.contextItem; hideMessageContext(); if (!x) return; const t = prompt("Edit message", x.text || ""); if (t && t.trim() && t.trim() !== x.text) sendProto({ t: "msg_edit", ...wmScope(), mid: x.mid || x.id, text: t.trim() }); });
+    }
+    const ok = !it.local && S.mode !== "admin" && (it.mid || it.id);
+    row.hidden = !ok; ed.hidden = !(ok && it.mine && it.text && Date.now() - it.ts < 9e5);
+  }
   function showMessageContext(it, x, y) {
     S.selected = it.key; S.contextItem = it;
     const menu = $("mxContextMenu"); menu.hidden = false;
-    $("mxContextDelete").hidden = !(it.mine || it.canDel || it.local);
+    $("mxContextDelete").hidden = !(it.mine || it.canDel || it.local); wmExtras(it, menu);
     menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 165)) + "px";
-    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 95)) + "px";
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - 190)) + "px";
     updateSelectionBar();
   }
   $("mxDeleteSelected").addEventListener("click", async () => { const it = selectedItem(); hideMessageContext(); if (it && (it.mine || it.canDel || it.local)) { await deleteItem(it); S.selected = null; updateSelectionBar(); } });
@@ -1302,10 +1347,18 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
 
       const foot = el("div", "mx-foot");
       const mark = !it.mine ? "" : it.state === "pending" ? "  ⏳" : it.state === "failed" ? "  ⚠️" : (it.read || it.readAt || it.delivered) ? "  ✓✓" : "  ✓";
-      const tm = el("span", "mx-time", fmt(it.ts) + mark); if (it.mine && (it.read || it.readAt)) tm.classList.add("wm-read"); if (it.state === "failed") tm.title = it.err || "Could not send"; foot.appendChild(tm);
+      const tm = el("span", "mx-time", (it.edited ? "edited · " : "") + fmt(it.ts) + mark); if (it.mine && (it.read || it.readAt)) tm.classList.add("wm-read"); if (it.state === "failed") tm.title = it.err || "Could not send"; foot.appendChild(tm);
       if (it.state === "failed" && it.local) foot.appendChild(fbtn("retry", "Retry", "Send again", "retry", () => retry(it)));
       b.appendChild(foot);
-      col.appendChild(b); row.appendChild(col); list.appendChild(row);
+      col.appendChild(b);
+      const rx = it.reactions ? Object.values(it.reactions) : [];
+      if (rx.length) {
+        const cnt = {}; rx.forEach((e) => { cnt[e] = (cnt[e] || 0) + 1; });
+        const chip = el("div", "wm-react", Object.keys(cnt).join("") + (rx.length > 1 ? " " + rx.length : ""));
+        chip.addEventListener("click", (ev) => { ev.stopPropagation(); const mine = it.reactions[S.uid] || "👍"; sendProto({ t: "msg_react", ...wmScope(), mid: it.mid || it.id, emoji: mine }); });
+        col.appendChild(chip);
+      }
+      row.appendChild(col); list.appendChild(row);
     });
     if (near) { list.scrollTop = list.scrollHeight; S.newBelow = 0; }
     else if (list.scrollHeight > prevH) S.newBelow++;
@@ -1415,6 +1468,36 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     const s = input.selectionStart ?? input.value.length, en = input.selectionEnd ?? s;
     input.value = input.value.slice(0, s) + e + input.value.slice(en); input.focus(); input.selectionStart = input.selectionEnd = s + e.length; grow();
   }); $("mxEmoji").appendChild(b); });
+  const wmOpts = () => (S.mode === "group" ? { scope: "group", peer: S.gid } : S.mode === "dm" ? { scope: "dm", peer: S.peer } : undefined);
+  let wmRec = null;
+  (function () {
+    const cb = $("chatBar"), mic = document.createElement("button");
+    mic.id = "wmMic"; mic.type = "button"; mic.className = "mx-ib dark"; mic.title = "Voice message"; mic.textContent = "🎤"; sendBtn.before(mic);
+    const rb = document.createElement("div"); rb.id = "wmRecBar"; rb.hidden = true;
+    rb.innerHTML = '<button type="button" id="wmRecCancel" title="Cancel">✕</button><b>● <i>0:00</i></b><button type="button" id="wmRecSend" title="Send">➤</button>'; cb.before(rb);
+    input.addEventListener("input", () => { mic.hidden = !!input.value.trim(); });
+    mic.addEventListener("click", async () => {
+      if (wmRec) return;
+      if (!canSend() || (S.mode === "dm" && !S.peer)) { flash("Choose a chat first."); return; }
+      if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) { flash("Voice recording is not supported here."); return; }
+      let st; try { st = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) { flash("Microphone permission denied."); return; }
+      const mt = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+      const mr = new MediaRecorder(st, mt ? { mimeType: mt } : {}), ch = [], t0 = Date.now(); wmRec = { mr, cancel: false }; rb.hidden = false;
+      mr.ondataavailable = (e) => { if (e.data.size) ch.push(e.data); };
+      const tick = setInterval(() => { const sec = Math.floor((Date.now() - t0) / 1000); rb.querySelector("i").textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); if (sec >= 300) mr.stop(); }, 250);
+      mr.onstop = async () => {
+        clearInterval(tick); st.getTracks().forEach((t) => t.stop()); rb.hidden = true; const rec = wmRec; wmRec = null;
+        if (rec.cancel || Date.now() - t0 < 700) return;
+        const ext = /mp4/.test(mr.mimeType) ? "m4a" : "webm";
+        const file = new File(ch, "voice-" + Date.now() + "." + ext, { type: mr.mimeType || "audio/webm" });
+        const r = await api.sendBlob(file, wmOpts()); if (r && r.ok === false) flash(r.error || "Could not send voice message");
+        render(); list.scrollTop = list.scrollHeight;
+      };
+      mr.start();
+    });
+    $("wmRecSend").addEventListener("click", () => { if (wmRec) wmRec.mr.stop(); });
+    $("wmRecCancel").addEventListener("click", () => { if (wmRec) { wmRec.cancel = true; wmRec.mr.stop(); } });
+  })();
   let wmLastTyp = 0;
   input.addEventListener("input", () => {
     if (!input.value || S.mode === "admin" || (S.mode === "dm" && !S.peer) || Date.now() - wmLastTyp < 3000 || !protoOK()) return;
@@ -1426,8 +1509,8 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
   // -------- WebRTC voice call (Node.js WebSocket signalling; no Firestore call records) --------
   const callBtn = $("mxCallBtn"), callPanel = $("mxCallPanel"), callTitle = $("mxCallTitle"), callText = $("mxCallText"),
         callAccept = $("mxCallAccept"), callEnd = $("mxCallEnd"), callMute = $("mxCallMute"), callAudio = $("mxCallRemoteAudio");
-  const callState = { pc:null, stream:null, id:"", phase:"idle", incoming:false, muted:false, pendingIce:[] };
-  const callSend = (action, extra={}) => sendProto({t:"call_signal", action, callId:callState.id, ...extra});
+  const callState = { peer:"", pc:null, stream:null, id:"", phase:"idle", incoming:false, muted:false, pendingIce:[] };
+  const callSend = (action, extra={}) => sendProto({t:"call_signal", action, callId:callState.id, ...(callState.peer?{to:callState.peer}:{}), ...extra});
   function callUi(phase, incoming=false) {
     callState.phase=phase; callState.incoming=incoming; callPanel.hidden=phase==="idle";
     callAccept.hidden=!(phase==="ringing" && incoming); callMute.hidden=!(phase==="active");
@@ -1449,32 +1532,34 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
   }
   async function ensurePeer() {
     if (callState.pc) return callState.pc;
+    const wv = !!(callState.video || /m=video/.test((callState.pendingOffer && callState.pendingOffer.sdp) || "")); callState.video = wv;
     if (!navigator.mediaDevices?.getUserMedia) throw new Error("এই অ্যাপ/পেজে মাইক্রোফোন API পাওয়া যায়নি। HTTPS অথবা localhost থেকে খুলুন।");
     // প্রথমে উন্নত noise-cancellation constraints; ব্যর্থ হলে সাধারণ audio:true দিয়ে retry।
     try {
       callState.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
-        video:false
+        video: wv ? { facingMode: "user", width: 640, height: 480 } : false
       });
     } catch (firstError) {
       if (["NotFoundError","DevicesNotFoundError","NotAllowedError","PermissionDeniedError","NotReadableError","TrackStartError"].includes(String(firstError?.name || ""))) {
         throw new Error(explainCallError(firstError));
       }
       try {
-        callState.stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+        callState.stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:wv });
       } catch (secondError) {
         throw new Error(explainCallError(secondError || firstError));
       }
     }
     const pc=callState.pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]});
     callState.stream.getTracks().forEach(t=>pc.addTrack(t,callState.stream));
-    pc.ontrack=e=>{callAudio.srcObject=e.streams[0]; callAudio.play().catch(()=>{});};
+    if(wv){const lv=$("wmLocalVideo");if(lv)lv.srcObject=callState.stream;wmVid(true)}
+    pc.ontrack=e=>{callAudio.srcObject=e.streams[0]; callAudio.play().catch(()=>{}); if(e.track.kind==="video"){const rv=$("wmRemoteVideo");if(rv){rv.srcObject=e.streams[0];rv.play().catch(()=>{})}wmVid(true)}};
     pc.onicecandidate=e=>{if(e.candidate && callState.id) callSend("ice",{candidate:e.candidate.toJSON()});};
     pc.onconnectionstatechange=()=>{if(pc.connectionState==="connected")callUi("active",false); else if(["failed","disconnected"].includes(pc.connectionState)&&callState.phase!=="idle")callText.textContent="নেটওয়ার্ক সংযোগ দুর্বল বা বিচ্ছিন্ন।";};
     return pc;
   }
   async function startVoiceCall(){
-    if(S.mode!=="admin"){toast("সাপোর্ট ট্যাব থেকে কল করুন");return;}
+    if(S.mode==="dm"&&S.peer){callState.peer=S.peer}else if(S.mode==="admin"){callState.peer=""}else{toast("Open a private chat to call");return;}
     if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){toast("এই WebView-তে ভয়েস কল সমর্থিত নয়");return;}
     if(callState.phase!=="idle")return;
     callState.id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)); callUi("connecting",false);
@@ -1482,11 +1567,20 @@ const close=$('chatCloseBtn');if(close)close.addEventListener('click',()=>{setTi
     catch(e){toast("কল শুরু করা যায়নি: "+explainCallError(e));resetCall(false);}
   }
   async function acceptVoiceCall(){try{const pc=await ensurePeer();const pending=callState.pendingOffer;if(!pending)throw Error("কল অফার পাওয়া যায়নি");await pc.setRemoteDescription(pending);for(const c of callState.pendingIce.splice(0)){try{await pc.addIceCandidate(c)}catch(_){}}const answer=await pc.createAnswer();await pc.setLocalDescription(answer);const r=await callSend("answer",{description:pc.localDescription.toJSON()});if(r?.ok===false)throw Error(r.error||"উত্তর পাঠানো যায়নি");callUi("connecting",false);}catch(e){toast("কল গ্রহণ করা যায়নি: "+explainCallError(e));resetCall(true,"reject");}}
-  function resetCall(notifyPeer=false, action="end") { if(notifyPeer&&callState.id)callSend(action,{reason:action});try{callState.pc?.close()}catch(_){};try{callState.stream?.getTracks().forEach(t=>t.stop())}catch(_){};callState.pc=null;callState.stream=null;callState.id="";callState.phase="idle";callState.incoming=false;callState.pendingOffer=null;callState.pendingIce=[];callState.muted=false;callAudio.srcObject=null;callPanel.hidden=true;callBtn.disabled=false; }
+  function resetCall(notifyPeer=false, action="end") { if(notifyPeer&&callState.id)callSend(action,{reason:action});try{callState.pc?.close()}catch(_){};try{callState.stream?.getTracks().forEach(t=>t.stop())}catch(_){};callState.pc=null;callState.stream=null;callState.video=false;callState.peer="";wmVid(false);callState.id="";callState.phase="idle";callState.incoming=false;callState.pendingOffer=null;callState.pendingIce=[];callState.muted=false;callAudio.srcObject=null;callPanel.hidden=true;callBtn.disabled=false; }
+  function wmVid(on) { ["wmRemoteVideo", "wmLocalVideo"].forEach((id) => { const v = $(id); if (v) { v.style.display = on ? "block" : "none"; if (!on) v.srcObject = null; } }); }
+  (function () {
+    const pnl = $("mxCallPanel"); if (!pnl) return;
+    const rv = document.createElement("video"), lv = document.createElement("video");
+    rv.id = "wmRemoteVideo"; lv.id = "wmLocalVideo"; [rv, lv].forEach((v) => { v.autoplay = true; v.playsInline = true; v.style.display = "none"; }); lv.muted = true;
+    pnl.insertBefore(lv, pnl.firstChild); pnl.insertBefore(rv, pnl.firstChild);
+    if (callBtn) { const vb = document.createElement("button"); vb.id = "wmVideoBtn"; vb.type = "button"; vb.title = "Video call"; callBtn.title = "Voice call"; vb.textContent = "📹"; vb.className = callBtn.className; callBtn.after(vb); vb.addEventListener("click", () => { callState.video = true; startVoiceCall(); }); callBtn.addEventListener("click", () => { callState.video = false; }, true); }
+  })();
   callBtn?.addEventListener("click",startVoiceCall); callAccept?.addEventListener("click",acceptVoiceCall); callEnd?.addEventListener("click",()=>resetCall(true,"end"));
   callMute?.addEventListener("click",()=>{callState.muted=!callState.muted;callState.stream?.getAudioTracks().forEach(t=>t.enabled=!callState.muted);callMute.textContent=callState.muted?"Unmute":"Mute";});
   function onCallSignal(m){if(!m||m.t!=="call_signal")return; (async()=>{
-    if(m.action==="offer") { if(callState.phase!=="idle"){callSend("reject",{reason:"busy"});return;} callState.id=String(m.callId||"");callState.pendingOffer=m.description;callUi("ringing",true);return; }
+    if(m.action==="offer") { if(callState.phase!=="idle"){sendProto({t:"call_signal",action:"reject",callId:String(m.callId||""),reason:"busy",...(m.user?{to:String(m.uid)}:{})});return;} callState.id=String(m.callId||"");callState.pendingOffer=m.description;callState.peer=m.user?String(m.uid||""):"";callUi("ringing",true);if(callState.peer){let nm=m.name||callState.peer;callTitle.textContent=nm+" • "+(/m=video/.test((m.description&&m.description.sdp)||"")?"Video":"Voice")+" call";}return; }
+    if(m.action==="reject"&&m.reason==="unavailable"&&String(m.callId)===callState.id){toast("User is offline or not available for calls.");resetCall(false);return;}
     if(!callState.id||String(m.callId)!==callState.id)return;
     try{if(m.action==="answer"&&m.description){await callState.pc?.setRemoteDescription(m.description);callUi("connecting",false);}else if(m.action==="ice"&&m.candidate){if(callState.pc?.remoteDescription)await callState.pc.addIceCandidate(m.candidate);else callState.pendingIce.push(m.candidate);}else if(["reject","end"].includes(m.action)){toast(m.action==="reject"?"অপর পক্ষ কল গ্রহণ করেননি":"কল শেষ হয়েছে");resetCall(false);}}catch(e){toast("কল সংযোগে সমস্যা হয়েছে");resetCall(false);}
   })(); }
@@ -1748,5 +1842,75 @@ list.addEventListener('touchend',e=>{if(!srow)return;const dx=e.changedTouches[0
  if(dx>70&&dy<30){const t=rawText(srow).replace(/^↪[^\n]*\n—\n/,'').slice(0,100);if(t){setQuote(t);input.focus()}}srow=null},{passive:true});
 })();
 </script>
+
+<style id="wm-v8-messenger">
+#chatModal,#chatModal[data-mode],#chatModal[data-mode][data-gk]{--ac:#0084ff;--ac2:#0084ff;--acr:0,132,255;--acs:#e7f3ff;--act:#0866ff;--ink:#050505;--mute:#65676b;--line:#e4e6eb;--bg:#fff;background:#fff}
+#chatModal #mxHead{background:#fff!important;color:#050505!important;border-bottom:1px solid #e4e6eb;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+#chatModal #mxHead .mx-ti b{font-size:15px;font-weight:700}
+#chatModal #mxHead .mx-ti small{color:#65676b}
+#chatModal #mxHead .mx-av{background:#e4e6eb!important;color:#050505!important;box-shadow:none}
+#chatModal #mxHead .mx-av i{border-color:#fff;background:#31a24c}
+#chatModal #mxHead .mx-ib,#chatModal .mx-ib.dark{background:transparent!important;color:#0084ff!important}
+#chatModal #mxHead .mx-ib:hover,#chatModal .mx-ib.dark:hover{background:#f0f2f5!important}
+#chatModal #mxList,#chatModal #mxListWrap{background:#fff!important;background-image:none!important}
+#chatModal .mx-m.me .mx-b{background:#0084ff!important;color:#fff!important;border:0!important;box-shadow:none!important;border-radius:18px;font-size:14px}
+#chatModal .mx-m.other .mx-b{background:#e4e6eb!important;color:#050505!important;border:0!important;box-shadow:none!important;border-radius:18px;font-size:14px}
+#chatModal .mx-m.other .mx-b a{color:#0866ff}#chatModal .mx-m.me .mx-b a{color:#fff;text-decoration:underline}
+#chatModal .mx-m.other:not(.first) .mx-b{border-top-left-radius:4px}#chatModal .mx-m.other:not(.last) .mx-b{border-bottom-left-radius:4px}
+#chatModal .mx-m.me:not(.first) .mx-b{border-top-right-radius:4px}#chatModal .mx-m.me:not(.last) .mx-b{border-bottom-right-radius:4px}
+#chatModal .mx-foot{opacity:.65;font-size:10px}
+#chatModal .mx-day{color:#65676b;background:transparent;font-size:12px;font-weight:600}
+#chatModal .mx-pic{width:28px;height:28px}
+#chatModal #chatBar{background:#fff;border-top:0;padding:8px;gap:4px;align-items:flex-end}
+#chatModal #chatInput{background:#f0f2f5!important;border:0!important;border-radius:20px!important;color:#050505!important;padding:8px 14px!important;font-size:15px}
+#chatModal #chatInput::placeholder{color:#65676b}
+#chatModal .mx-send{background:transparent!important;color:#0084ff!important;box-shadow:none!important}
+#chatModal .mx-dir-btn.active,#chatModal .mx-btn:not(.ghost):not(.danger):not(.soft){background:#0084ff;color:#fff}
+#mxContextMenu{background:#fff!important;color:#050505!important;border-radius:16px!important;box-shadow:0 4px 18px rgba(0,0,0,.25)!important;overflow:hidden;min-width:190px}
+#mxContextMenu>button{padding:10px 16px;background:none;border:0;text-align:left;font-size:14px;color:#050505}
+#mxContextMenu>button:hover{background:#f0f2f5}
+#wmReactRow{display:flex;gap:2px;padding:8px 8px 6px;border-bottom:1px solid #e4e6eb}
+#wmReactRow button{width:auto!important;font-size:24px;line-height:1;background:none;border:0;padding:2px 5px;cursor:pointer;transition:transform .12s}
+#wmReactRow button:hover{transform:scale(1.3)}
+.wm-react{display:inline-block;background:#fff;border:2px solid #fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.35);margin:-8px 8px 2px;padding:0 6px;font-size:12px;line-height:18px;position:relative;z-index:1;cursor:pointer;color:#65676b}
+#chatModal .mx-m.me .wm-react{float:right}
+#wmReplyBar{background:#f0f2f5;border-left-color:#0084ff}
+#chatModal.pro-dark,#chatModal.pro-dark #mxList,#chatModal.pro-dark #mxListWrap,#chatModal.pro-dark #chatBar,#chatModal.pro-dark #mxHead{background:#18191a!important;color:#e4e6eb!important;border-color:#3e4042}
+#chatModal.pro-dark .mx-m.other .mx-b{background:#3a3b3c!important;color:#e4e6eb!important}
+#chatModal.pro-dark #chatInput{background:#3a3b3c!important;color:#e4e6eb!important}
+#chatModal.pro-dark #mxHead .mx-av{background:#3a3b3c!important;color:#e4e6eb!important}
+#chatModal.pro-dark #mxHead .mx-ti small,#chatModal.pro-dark .mx-day{color:#b0b3b8}
+.pro-dark ~ #mxContextMenu,#chatModal.pro-dark #mxContextMenu{background:#242526!important;color:#e4e6eb!important}
+#chatModal.pro-dark #mxContextMenu>button{color:#e4e6eb}#chatModal.pro-dark #mxContextMenu>button:hover{background:#3a3b3c}
+</style>
+
+<style id="wm-v9-fullscreen">
+.wm-voice{display:flex;align-items:center;gap:8px;min-width:190px;padding:2px 0}
+.wm-voice button{width:34px;height:34px;border-radius:50%;border:0;background:#fff;color:#0084ff;font-size:14px;cursor:pointer;flex:none}
+.mx-m.other .wm-voice button{background:#0084ff;color:#fff}
+.wm-vbar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.4);overflow:hidden}.mx-m.other .wm-vbar{background:rgba(0,0,0,.15)}
+.wm-vbar i{display:block;height:100%;width:0;background:#fff}.mx-m.other .wm-vbar i{background:#0084ff}
+.wm-voice span{font-size:12px;opacity:.85;min-width:38px}
+#wmRecBar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;background:#f0f2f5;color:#e41e3f}
+#wmRecBar[hidden]{display:none!important}
+#wmRecBar button{width:40px;height:40px;border-radius:50%;border:0;background:#fff;font-size:18px;cursor:pointer}
+#wmRecSend{background:#0084ff!important;color:#fff}#wmRecBar b{font-size:16px}
+#wmMic[hidden]{display:none!important}
+#wmRemoteVideo{width:100%;max-height:260px;border-radius:12px;background:#000;object-fit:cover;margin-bottom:8px}
+#wmLocalVideo{position:absolute;right:20px;top:20px;width:84px;height:112px;border-radius:10px;background:#222;object-fit:cover;border:2px solid #fff;z-index:2}
+@media (max-width:900px){
+#chatModal{position:fixed!important;inset:0!important;right:0!important;bottom:0!important;width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:none!important;border-radius:0!important;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#chatModal #mxHead{min-height:58px;padding:8px 10px}
+#chatModal #mxHead .mx-ti b{font-size:17px}
+#chatModal .mx-ib{width:42px;height:42px;font-size:20px}
+#chatModal .mx-av{width:40px;height:40px}
+#chatModal .mx-col{max-width:80%}
+#chatModal .mx-m.me .mx-b,#chatModal .mx-m.other .mx-b{font-size:16px;line-height:1.4;padding:8px 12px}
+#chatModal #chatInput{font-size:16px;min-height:42px}
+#chatModal .mx-send{width:44px;height:44px;font-size:22px}
+#wmReactRow button{font-size:28px}
+#mxContextMenu>button{padding:14px 18px!important;font-size:16px!important}
+}
+</style>
 </body>
 </html>
